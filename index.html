@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>G12 Gaming | Club Rocket League</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script defer src="public.js"></script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="#inicio">
+            <span class="brand-mark">G12</span>
+            <span>G12 <strong>GAMING</strong></span>
+        </a>
+
+        <nav>
+            <a href="#inicio">Inicio</a>
+            <a href="#jugadores">Jugadores</a>
+            <a href="#torneos">Torneos</a>
+            <a href="#palmares">Palmarés</a>
+            <a href="#records">Récords</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero" id="inicio">
+            <div class="hero-content">
+                <p class="eyebrow">ROCKET LEAGUE · CLUB OFICIAL</p>
+                <h1>WE PLAY TO<br><span>DOMINATE.</span></h1>
+                <p class="hero-description">
+                    Competición, equipo y ambición. Bienvenido al archivo oficial de G12 Gaming.
+                </p>
+                <a class="button" href="#jugadores">CONOCER AL EQUIPO ↘</a>
+            </div>
+            <div class="hero-logo" aria-label="G12 Gaming">
+                G12<span>GAMING</span>
+            </div>
+        </section>
+
+        <section class="stats-grid" aria-label="Estadísticas del club">
+            <article class="stat-card">
+                <span>JUGADORES</span>
+                <strong id="total-jugadores">0</strong>
+            </article>
+            <article class="stat-card">
+                <span>TORNEOS</span>
+                <strong id="total-torneos">0</strong>
+            </article>
+            <article class="stat-card">
+                <span>TROFEOS</span>
+                <strong id="total-trofeos">0</strong>
+            </article>
+            <article class="stat-card">
+                <span>RÉCORDS</span>
+                <strong id="total-records">0</strong>
+            </article>
+        </section>
+
+        <section class="section" id="jugadores">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">EL ROSTER</p>
+                    <h2>Nuestros <span>jugadores.</span></h2>
+                </div>
+                <span class="section-tag">G12 / TEAM</span>
+            </div>
+            <div id="lista-jugadores" class="cards-grid"></div>
+        </section>
+
+        <section class="section section-dark" id="torneos">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">COMPETICIÓN</p>
+                    <h2>Historial de <span>torneos.</span></h2>
+                </div>
+                <span class="section-tag">MATCH HISTORY</span>
+            </div>
+            <div id="lista-torneos" class="history-list"></div>
+        </section>
+
+        <section class="section" id="palmares">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">LO QUE HEMOS GANADO</p>
+                    <h2>El <span>palmarés.</span></h2>
+                </div>
+                <span class="section-tag">HONOURS</span>
+            </div>
+            <div id="lista-trofeos" class="cards-grid"></div>
+        </section>
+
+        <section class="section section-dark" id="records">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">MARCAS DEL CLUB</p>
+                    <h2>Récords y <span>curiosidades.</span></h2>
+                </div>
+                <span class="section-tag">G12 RECORDS</span>
+            </div>
+            <div id="lista-records" class="cards-grid"></div>
+        </section>
+    </main>
+
+    <footer>
+        <a class="brand footer-brand" href="#inicio">
+            <span class="brand-mark">G12</span>
+            <span>G12 <strong>GAMING</strong></span>
+        </a>
+        <p>BUILT TO COMPETE. UNITED TO WIN.</p>
+    </footer>
+</body>
+</html>
