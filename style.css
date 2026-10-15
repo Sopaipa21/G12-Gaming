@@ -1017,3 +1017,110 @@ footer p {
 .logo-club span {
     letter-spacing: 1px;
 }
+
+/* G12 GAMING — Fichas competitivas de jugadores */
+
+.player-card {
+    position: relative;
+    background:
+        radial-gradient(
+            circle at 100% 0%,
+            rgba(112, 0, 255, 0.13),
+            transparent 48%
+        ),
+        var(--tarjeta);
+    border-color: rgba(112, 0, 255, 0.32);
+    padding: 23px;
+}
+
+.player-card:hover {
+    border-color: #C000FF;
+    box-shadow:
+        0 0 22px rgba(112, 0, 255, 0.15),
+        inset 0 0 20px rgba(112, 0, 255, 0.04);
+}
+
+.player-card-top {
+    margin-bottom: 20px;
+}
+
+.player-emblem {
+    width: 54px;
+    height: 54px;
+    border-radius: 13px;
+    font-size: 16px;
+    letter-spacing: -1px;
+    background: rgba(112, 0, 255, 0.18);
+    border-color: rgba(192, 0, 255, 0.55);
+    box-shadow: inset 0 0 14px rgba(112, 0, 255, 0.1);
+}
+
+.player-rank {
+    font-size: 11px;
+    padding: 7px 11px;
+    text-align: center;
+}
+
+.player-identity h3 {
+    font-size: 25px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    overflow-wrap: anywhere;
+}
+
+.data-card .player-role {
+    color: #C000FF;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin: 5px 0 22px;
+}
+
+.player-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.player-stat {
+    min-width: 0;
+    padding: 13px 12px;
+    border-radius: 10px;
+    background: rgba(112, 0, 255, 0.09);
+    border: 1px solid rgba(112, 0, 255, 0.23);
+}
+
+.player-stat span,
+.player-peak-rank span {
+    display: block;
+    color: var(--texto-secundario);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    margin-bottom: 7px;
+}
+
+.player-stat strong {
+    display: block;
+    color: var(--blanco-rosado);
+    font-size: 23px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.player-stat-peak strong {
+    color: #C000FF;
+}
+
+.player-peak-rank {
+    margin-top: 12px;
+    padding: 13px 12px;
+    border-top: 1px solid rgba(112, 0, 255, 0.24);
+}
+
+.player-peak-rank strong {
+    color: var(--blanco-rosado);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}

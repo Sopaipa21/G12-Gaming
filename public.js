@@ -13,7 +13,9 @@ const firebaseConfig = {
     measurementId: "G-7CQDJQ1HCS"
 };
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
 const db = firebase.firestore();
 const documentoDatos = db.collection("g12").doc("datos");
@@ -23,10 +25,12 @@ let datos = {
     torneos: [],
     trofeos: [],
     torneosIndividuales: [],
-    
+    records: []
 };
 
 let detenerSincronizacion = null;
+
+/* NORMALIZACIÓN DE DATOS */
 
 function normalizarDatos(valor) {
     return {
@@ -39,6 +43,7 @@ function normalizarDatos(valor) {
                 mmrPeak: jugador.mmrPeak ?? null
             }))
             : [],
+
         torneos: Array.isArray(valor?.torneos) ? valor.torneos : [],
         trofeos: Array.isArray(valor?.trofeos) ? valor.trofeos : [],
         torneosIndividuales: Array.isArray(valor?.torneosIndividuales)
@@ -47,6 +52,8 @@ function normalizarDatos(valor) {
         records: Array.isArray(valor?.records) ? valor.records : []
     };
 }
+
+/* UTILIDADES */
 
 function escapar(valor) {
     return String(valor ?? "").replace(/[&<>"']/g, caracter => ({
@@ -101,17 +108,36 @@ function tarjetaJugador(jugador) {
     const mmrPeak = jugador.mmrPeak;
 
     return `
-        <article class="data-card">
-            <div class="card-topline">
-                <div class="card-icon">G12</div>
-                <span class="pill">${mostrarTexto(rangoActual, "Sin rango actual")}</span>
+        <article class="data-card player-card">
+            <div class="card-topline player-card-top">
+                <div class="card-icon player-emblem">G12</div>
+                <span class="pill player-rank">
+                    ${mostrarTexto(rangoActual, "Sin rango actual")}
+                </span>
             </div>
 
-            <h3>${mostrarTexto(jugador.nombre, "Jugador sin nombre")}</h3>
-            <p>Rol: ${mostrarTexto(jugador.posicion)}</p>
-            <p>MMR actual: <strong>${mostrarTexto(mmrActual, "Sin registrar")}</strong></p>
-            <p>Rango peak: <strong>${mostrarTexto(rangoPeak, "Sin registrar")}</strong></p>
-            <p>MMR peak: <strong>${mostrarTexto(mmrPeak, "Sin registrar")}</strong></p>
+            <div class="player-identity">
+                <h3>${mostrarTexto(jugador.nombre, "Jugador sin nombre")}</h3>
+                <p class="player-role">
+                    ${mostrarTexto(jugador.posicion, "Rol sin registrar")}
+                </p>
+            </div>
+
+            <div class="player-stats">
+                <div class="player-stat">
+                    <span>MMR ACTUAL</span>
+                    <strong>${mostrarTexto(mmrActual, "—")}</strong>
+                </div>
+                <div class="player-stat player-stat-peak">
+                    <span>MMR MÁXIMO</span>
+                    <strong>${mostrarTexto(mmrPeak, "—")}</strong>
+                </div>
+            </div>
+
+            <div class="player-peak-rank">
+                <span>RANGO MÁXIMO</span>
+                <strong>${mostrarTexto(rangoPeak, "Sin registrar")}</strong>
+            </div>
         </article>
     `;
 }
@@ -125,116 +151,56 @@ function renderJugadores() {
         : mensajeVacio("Todavía no hay jugadores registrados.");
 }
 
-/* TORNEOS Y SERIES BO3 */
-
-function obtenerPartidas(torneo) {
-    if (Array.isArray(torneo.partidas)) return torneo.partidas;
-
-    const partidas = [];
-
-    for (let numero = 1; numero <= 3; numero++) {
-        const g12 = torneo[`g12_${numero}`];
-        const rival = torneo[`rival_${numero}`];
-
-        if (g12 !== undefined && g12 !== "" &&
-            rival !== undefined && rival !== "") {
-            partidas.push({
-                g12: Number(g12),
-                rival: Number(rival)
-            });
-        }
-    }
-
-    return partidas;
-}
-
-function calcularSerie(partidas) {
-    let victoriasG12 = 0;
-    let victoriasRival = 0;
-    const jugadas = [];
-
-    for (const partida of partidas) {
-        if (victoriasG12 === 2 || victoriasRival === 2) break;
-
-        if (
-            !Number.isInteger(partida.g12) ||
-            !Number.isInteger(partida.rival) ||
-            partida.g12 < 0 ||
-            partida.rival < 0 ||
-            partida.g12 === partida.rival
-        ) continue;
-
-        jugadas.push(partida);
-
-        if (partida.g12 > partida.rival) victoriasG12++;
-        else victoriasRival++;
-    }
-
-    return {
-        victoriasG12,
-        victoriasRival,
-        ganador: victoriasG12 === 2
-            ? "G12 Gaming"
-            : victoriasRival === 2
-                ? "Rival"
-                : "",
-        partidas: jugadas
-    };
-}
-
-function resumenSerie(torneo) {
-    const partidas = obtenerPartidas(torneo);
-    if (!partidas.length) return "";
-
-    const serie = calcularSerie(partidas);
-
-    const resultados = serie.partidas.map((partida, indice) => `
-        <div class="match-result ${partida.g12 > partida.rival ? "won" : ""}">
-            <span>Partida ${indice + 1}</span>
-            <strong>${partida.g12} – ${partida.rival}</strong>
-        </div>
-    `).join("");
-
-    let ganador = "Serie sin terminar";
-
-    if (serie.ganador === "G12 Gaming") {
-        ganador = `G12 Gaming gana ${serie.victoriasG12}–${serie.victoriasRival}`;
-    } else if (serie.ganador === "Rival") {
-        ganador = `${mostrarTexto(torneo.rival, "Rival")} gana ${serie.victoriasRival}–${serie.victoriasG12}`;
-    }
-
-    return `
-        <div class="match-results">${resultados}</div>
-        <p><strong>${ganador}</strong></p>
-        ${torneo.jugadoresG12 ? `<p>G12: ${mostrarTexto(torneo.jugadoresG12)}</p>` : ""}
-        ${torneo.jugadoresRival ? `<p>Rival: ${mostrarTexto(torneo.jugadoresRival)}</p>` : ""}
-    `;
-}
+/* TORNEOS DEL CLUB */
 
 function tarjetaTorneo(torneo) {
+    const nombre = torneo.nombre
+        ?? torneo.titulo
+        ?? torneo.competicion
+        ?? torneo.nombreTorneo
+        ?? "Torneo sin nombre";
+
+    const competicion = torneo.competicion
+        ?? torneo.nombreCompeticion
+        ?? "";
+
+    const resultado = torneo.resultado
+        ?? torneo.puesto
+        ?? torneo.posicion
+        ?? torneo.clasificacion
+        ?? "";
+
+    const fecha = torneo.fecha ?? "";
+    const descripcion = torneo.descripcion ?? torneo.notas ?? "";
+    const jugadores = torneo.jugadores ?? torneo.equipo ?? "";
+    const estado = torneo.estado ?? torneo.formato ?? "";
+
     return `
-        <article class="history-card">
-            <div class="history-main">
-                <div class="card-topline">
-                    <span class="pill">${mostrarTexto(torneo.modo, "Modo sin especificar")}</span>
-                    <span class="section-tag">${formatearFecha(torneo.fecha)}</span>
-                </div>
-
-                <h3>${mostrarTexto(torneo.nombre, "Torneo sin nombre")}</h3>
-                <p>Participantes G12: ${mostrarTexto(torneo.jugadores)}</p>
-
-                ${torneo.rival ? `<p>Final contra: <strong>${mostrarTexto(torneo.rival)}</strong></p>` : ""}
-
-                <p>Resultado: <strong>${mostrarTexto(torneo.resultado, "Sin resultado")}</strong></p>
-
-                ${resumenSerie(torneo)}
-
-                ${torneo.notas ? `<p class="history-notes">${mostrarTexto(torneo.notas)}</p>` : ""}
+        <article class="data-card tournament-card">
+            <div class="card-topline">
+                <div class="card-icon">🏆</div>
+                <span class="pill">${mostrarTexto(estado, "Torneo")}</span>
             </div>
 
-            <div class="history-side">
-                <span class="pill">${mostrarTexto(torneo.hora, "Hora no indicada")}</span>
-            </div>
+            <h3>${mostrarTexto(nombre, "Torneo sin nombre")}</h3>
+
+            ${competicion
+                ? `<p>Competición: ${mostrarTexto(competicion)}</p>`
+                : ""}
+
+            ${resultado !== ""
+                ? `<p>Resultado: <strong>${mostrarTexto(resultado)}</strong></p>`
+                : ""}
+
+            ${fecha ? `<p>Fecha: ${formatearFecha(fecha)}</p>` : ""}
+
+            ${jugadores
+                ? `<p>Jugadores: ${mostrarTexto(
+                    Array.isArray(jugadores) ? jugadores.join(", ") : jugadores
+                )}</p>`
+                : ""}
+
+            ${descripcion ? `<p>${mostrarTexto(descripcion)}</p>` : ""}
         </article>
     `;
 }
@@ -244,7 +210,7 @@ function renderTorneos() {
     if (!contenedor) return;
 
     const ordenados = [...datos.torneos].sort((a, b) =>
-        String(b.fecha || "").localeCompare(String(a.fecha || ""))
+        String(b.fecha ?? "").localeCompare(String(a.fecha ?? ""))
     );
 
     contenedor.innerHTML = ordenados.length
@@ -252,7 +218,7 @@ function renderTorneos() {
         : mensajeVacio("Todavía no hay torneos registrados.");
 }
 
-/* TORNEOS INDIVIDUALES: LISTA DESPLEGABLE POR JUGADOR */
+/* TORNEOS INDIVIDUALES */
 
 function normalizarNombreJugador(nombre) {
     return String(nombre ?? "").trim().toLocaleLowerCase("es");
@@ -268,9 +234,11 @@ function obtenerNombreJugador(torneo) {
 }
 
 function obtenerTemporada(torneo) {
-    if (torneo.temporada !== undefined &&
+    if (
+        torneo.temporada !== undefined &&
         torneo.temporada !== null &&
-        String(torneo.temporada).trim() !== "") {
+        String(torneo.temporada).trim() !== ""
+    ) {
         return String(torneo.temporada).trim();
     }
 
@@ -283,8 +251,11 @@ function obtenerTemporada(torneo) {
 }
 
 function obtenerTituloTorneoIndividual(torneo) {
-    if (torneo.nombre && String(torneo.nombre).trim()) {
-        return String(torneo.nombre).trim();
+    // Comprobar primero el tipo evita mostrar un título antiguo incorrecto.
+    if (torneo.tipoTorneo === "pentatlon") {
+        return torneo.temporada
+            ? `Pentatlón — Temporada ${torneo.temporada}`
+            : "Pentatlón";
     }
 
     if (torneo.tipoTorneo === "temporada") {
@@ -295,13 +266,16 @@ function obtenerTituloTorneoIndividual(torneo) {
         return "Torneo de fin de semana";
     }
 
-    return "Torneo individual";
+    return torneo.nombre && String(torneo.nombre).trim()
+        ? String(torneo.nombre).trim()
+        : "Torneo individual";
 }
 
 function tarjetaIndividual(torneo) {
     const titulo = obtenerTituloTorneoIndividual(torneo);
     const puesto = torneo.puesto ?? torneo.posicion ?? "";
     const rango = torneo.rango ?? "";
+
     const resultado = puesto !== ""
         ? `Puesto: ${puesto}`
         : rango !== ""
@@ -314,7 +288,10 @@ function tarjetaIndividual(torneo) {
 
             <div class="individual-tournament-info">
                 <h4>${escapar(titulo)}</h4>
-                <p class="individual-tournament-result">${escapar(resultado)}</p>
+
+                <p class="individual-tournament-result">
+                    ${escapar(resultado)}
+                </p>
 
                 ${rango !== "" && puesto !== ""
                     ? `<p>Rango: ${escapar(rango)}</p>`
@@ -336,10 +313,6 @@ function renderTorneosIndividuales() {
     const contenedor = document.getElementById("lista-torneos-individuales");
     if (!contenedor) return;
 
-    /*
-     * Incluye a todos los jugadores registrados, incluso si aún
-     * no tienen torneos individuales.
-     */
     const jugadores = new Map();
 
     for (const jugador of datos.jugadores) {
@@ -349,18 +322,10 @@ function renderTorneosIndividuales() {
         const clave = normalizarNombreJugador(nombre);
 
         if (!jugadores.has(clave)) {
-            jugadores.set(clave, {
-                nombre,
-                torneos: []
-            });
+            jugadores.set(clave, { nombre, torneos: [] });
         }
     }
 
-    /*
-     * Asocia cada torneo al jugador correspondiente.
-     * También conserva registros de jugadores que ya no figuren
-     * en la lista actual del roster.
-     */
     for (const torneo of datos.torneosIndividuales) {
         const nombre = obtenerNombreJugador(torneo);
         if (!nombre) continue;
@@ -368,10 +333,7 @@ function renderTorneosIndividuales() {
         const clave = normalizarNombreJugador(nombre);
 
         if (!jugadores.has(clave)) {
-            jugadores.set(clave, {
-                nombre,
-                torneos: []
-            });
+            jugadores.set(clave, { nombre, torneos: [] });
         }
 
         jugadores.get(clave).torneos.push(torneo);
@@ -394,10 +356,7 @@ function renderTorneosIndividuales() {
         for (const torneo of jugador.torneos) {
             const temporada = obtenerTemporada(torneo);
 
-            if (!grupos.has(temporada)) {
-                grupos.set(temporada, []);
-            }
-
+            if (!grupos.has(temporada)) grupos.set(temporada, []);
             grupos.get(temporada).push(torneo);
         }
 
@@ -405,38 +364,41 @@ function renderTorneosIndividuales() {
             if (a[0] === "Sin temporada") return 1;
             if (b[0] === "Sin temporada") return -1;
 
-            return b[0].localeCompare(a[0], "es", {
-                numeric: true
-            });
+            return b[0].localeCompare(a[0], "es", { numeric: true });
         });
 
         const totalTorneos = jugador.torneos.length;
 
-        const contenidoTemporadas = temporadasOrdenadas.map(([temporada, torneos]) => {
-            const torneosOrdenados = [...torneos].sort((a, b) =>
-                String(b.fecha || "").localeCompare(String(a.fecha || ""))
-            );
+        const contenidoTemporadas = temporadasOrdenadas.map(
+            ([temporada, torneos]) => {
+                const torneosOrdenados = [...torneos].sort((a, b) =>
+                    String(b.fecha || "").localeCompare(String(a.fecha || ""))
+                );
 
-            return `
-                <section class="individual-season">
-                    <h4 class="individual-season-title">
-                        <span class="individual-season-icon">◆</span>
-                        ${escapar(
-                            temporada === "Sin temporada"
-                                ? temporada
-                                : `Temporada ${temporada}`
-                        )}
-                        <span class="individual-season-count">
-                            ${torneos.length} ${torneos.length === 1 ? "torneo" : "torneos"}
-                        </span>
-                    </h4>
+                return `
+                    <section class="individual-season">
+                        <h4 class="individual-season-title">
+                            <span class="individual-season-icon">◆</span>
 
-                    <div class="individual-tournaments-list">
-                        ${torneosOrdenados.map(tarjetaIndividual).join("")}
-                    </div>
-                </section>
-            `;
-        }).join("");
+                            ${escapar(
+                                temporada === "Sin temporada"
+                                    ? temporada
+                                    : `Temporada ${temporada}`
+                            )}
+
+                            <span class="individual-season-count">
+                                ${torneos.length}
+                                ${torneos.length === 1 ? "torneo" : "torneos"}
+                            </span>
+                        </h4>
+
+                        <div class="individual-tournaments-list">
+                            ${torneosOrdenados.map(tarjetaIndividual).join("")}
+                        </div>
+                    </section>
+                `;
+            }
+        ).join("");
 
         return `
             <details class="individual-player" id="jugador-individual-${indice}">
@@ -446,7 +408,10 @@ function renderTorneosIndividuales() {
                     <span class="individual-player-name">
                         <strong>${escapar(jugador.nombre)}</strong>
                         <span class="individual-player-subtitle">
-                            ${totalTorneos} ${totalTorneos === 1 ? "torneo individual" : "torneos individuales"}
+                            ${totalTorneos}
+                            ${totalTorneos === 1
+                                ? "torneo individual"
+                                : "torneos individuales"}
                         </span>
                     </span>
 
@@ -512,7 +477,7 @@ function establecerEstado(texto) {
     if (elemento) elemento.textContent = texto;
 }
 
-/* LECTURA EN TIEMPO REAL */
+/* SINCRONIZACIÓN CON FIRESTORE */
 
 function iniciarSincronizacion() {
     if (detenerSincronizacion) {
