@@ -28,7 +28,6 @@ let datos = {
     jugadores: [],
     torneos: [],
     trofeos: [],
-    records: []
 };
 let detenerSincronizacion = null;
 let migracionIntentada = false;
@@ -46,7 +45,6 @@ function datosVacios() {
         jugadores: [],
         torneos: [],
         trofeos: [],
-        records: []
     };
 }
 
@@ -123,7 +121,6 @@ function actualizarContadores() {
     document.getElementById("total-jugadores").textContent = datos.jugadores.length;
     document.getElementById("total-torneos").textContent = datos.torneos.length;
     document.getElementById("total-trofeos").textContent = datos.trofeos.length;
-    document.getElementById("total-records").textContent = datos.records.length;
 }
 
 function mensajeVacio(texto) {
@@ -303,27 +300,11 @@ function renderTrofeos() {
         : mensajeVacio("Los trofeos que consigas aparecerán aquí.");
 }
 
-/* RÉCORDS */
-
-function renderRecords() {
-    const contenedor = document.getElementById("lista-records");
-    contenedor.innerHTML = datos.records.length
-        ? datos.records.map(record => `
-            <article class="data-card">
-                <div class="card-topline"><div class="card-icon">#</div></div>
-                <h3>${mostrarTexto(record.nombre || record.titulo, "Récord del club")}</h3>
-                <p>${mostrarTexto(record.descripcion || record.valor, "Sin detalles")}</p>
-            </article>
-        `).join("")
-        : mensajeVacio("Aquí aparecerán los récords y curiosidades del club.");
-}
-
 function actualizarWeb() {
     actualizarContadores();
     renderJugadores();
     renderTorneos();
     renderTrofeos();
-    renderRecords();
 }
 
 /* GUARDADO COMPARTIDO */

@@ -789,3 +789,231 @@ footer p {
         text-align: left;
     }
 }
+
+/* ==========================================
+   TORNEOS INDIVIDUALES — LISTA POR JUGADOR
+   ========================================== */
+
+#lista-torneos-individuales {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.individual-player {
+    overflow: hidden;
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.individual-player:hover,
+.individual-player[open] {
+    border-color: var(--violeta);
+    box-shadow: 0 0 18px rgba(112, 0, 255, .10);
+}
+
+.individual-player-summary {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 18px 22px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.individual-player-summary::-webkit-details-marker {
+    display: none;
+}
+
+.individual-player-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    background: rgba(112, 0, 255, .15);
+    border: 1px solid rgba(192, 0, 255, .35);
+    border-radius: 10px;
+    color: var(--blanco-rosado);
+    font-weight: 950;
+    font-size: 14px;
+}
+
+.individual-player-name {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    gap: 3px;
+}
+
+.individual-player-name strong {
+    color: var(--texto);
+    font-size: 17px;
+    overflow-wrap: anywhere;
+}
+
+.individual-player-subtitle {
+    color: var(--texto-secundario);
+    font-size: 12px;
+}
+
+.individual-player-arrow {
+    color: var(--magenta);
+    font-size: 25px;
+    line-height: 1;
+    transition: transform .2s;
+}
+
+.individual-player[open] .individual-player-arrow {
+    transform: rotate(180deg);
+}
+
+.individual-player-content {
+    padding: 0 22px 22px;
+    border-top: 1px solid var(--borde);
+}
+
+.individual-season {
+    margin-top: 22px;
+}
+
+.individual-season-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin: 0 0 12px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid var(--borde);
+    color: var(--blanco-rosado);
+    font-size: 15px;
+}
+
+.individual-season-icon {
+    color: var(--magenta);
+    font-size: 12px;
+}
+
+.individual-season-count {
+    margin-left: auto;
+    color: var(--texto-secundario);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.individual-tournaments-list {
+    display: grid;
+    gap: 10px;
+}
+
+.individual-tournament {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding: 15px;
+    background: #0C0714;
+    border: 1px solid var(--borde);
+    border-radius: 9px;
+    transition: border-color .2s;
+}
+
+.individual-tournament:hover {
+    border-color: rgba(192, 0, 255, .55);
+}
+
+.individual-tournament-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 37px;
+    width: 37px;
+    height: 37px;
+    background: rgba(112, 0, 255, .13);
+    border: 1px solid rgba(192, 0, 255, .25);
+    border-radius: 8px;
+    color: var(--magenta);
+    font-size: 20px;
+}
+
+.individual-tournament-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.individual-tournament-info h4 {
+    margin: 1px 0 6px;
+    color: var(--texto);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.individual-tournament-info p {
+    margin: 4px 0;
+    color: var(--texto-secundario);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.individual-tournament-info .individual-tournament-result {
+    color: var(--magenta);
+    font-weight: 800;
+}
+
+.individual-empty {
+    margin-top: 18px;
+    padding: 20px;
+    background: #0C0714;
+    border: 1px dashed var(--borde);
+    border-radius: 9px;
+    color: var(--texto-secundario);
+    text-align: center;
+    font-size: 13px;
+}
+
+@media (max-width: 620px) {
+    .individual-player-summary {
+        gap: 11px;
+        padding: 15px;
+    }
+
+    .individual-player-content {
+        padding: 0 15px 16px;
+    }
+
+    .individual-player-name strong {
+        font-size: 15px;
+    }
+
+    .individual-season-title {
+        font-size: 14px;
+    }
+
+    .individual-tournament {
+        padding: 12px;
+        gap: 10px;
+    }
+}
+.logo-club {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #F8F4FF;
+    font-weight: 800;
+    font-size: 1.1rem;
+    white-space: nowrap;
+}
+
+.logo-club img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    display: block;
+}
+
+.logo-club span {
+    letter-spacing: 1px;
+}
