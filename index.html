@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#08050F">
     <title>G12 Gaming | Club Rocket League</title>
     <link rel="stylesheet" href="style.css">
 
@@ -14,17 +15,15 @@
 <body>
     <header class="topbar">
         <a class="brand" href="#inicio">
-            <span class="brand-mark">G12</span>
+            <img src="logo-G12.png" alt="G12 Gaming" class="brand-mark">
             <span>G12 <strong>GAMING</strong></span>
         </a>
-<a href="#inicio" class="logo-club" aria-label="G12 Gaming - Inicio">
-    <img src="logo-G12.png" alt="Logo de G12 Gaming">
-    <span>G12 GAMING</span>
-</a>
 
         <nav>
             <a href="#inicio">Inicio</a>
             <a href="#jugadores">Jugadores</a>
+            <a href="#estadisticas-individuales">Estadísticas individuales</a>
+            <a href="#liga">Liga</a>
             <a href="#torneos">Torneos</a>
             <a href="#torneos-individuales">Torneos individuales</a>
             <a href="#palmares">Palmarés</a>
@@ -35,10 +34,8 @@
         <section class="hero" id="inicio">
             <div class="hero-content">
                 <p class="eyebrow">ROCKET LEAGUE · CLUB OFICIAL</p>
-                <h1>PASIÓN POR LOS<br><span>COLORES</span></h1>
-                <p class="hero-description">
-                    Competición, equipo y ambición. Bienvenido a la página oficial de G12 Gaming.
-                </p>
+                <h1>WE PLAY TO<br><span>DOMINATE.</span></h1>
+                <p class="hero-description">Club Europeo, Español (España)</p>
                 <a class="button" href="#jugadores">CONOCER AL EQUIPO ↘</a>
             </div>
             <div class="hero-logo" aria-label="G12 Gaming">
@@ -72,7 +69,62 @@
             <div id="lista-jugadores" class="cards-grid"></div>
         </section>
 
-        <section class="section section-dark" id="torneos">
+        <!-- ESTADÍSTICAS INDIVIDUALES -->
+        <section class="section section-dark" id="estadisticas-individuales">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">RENDIMIENTO INDIVIDUAL</p>
+                    <h2>Estadísticas <span>individuales.</span></h2>
+                    <p class="muted">
+                        Goles, asistencias y salvadas de cada miembro de G12 Gaming.
+                    </p>
+                </div>
+                <span class="section-tag">PLAYER STATS</span>
+            </div>
+
+
+            <div id="lista-estadisticas-individuales" class="cards-grid">
+                <div class="empty-state">Cargando estadísticas individuales...</div>
+            </div>
+        </section>
+
+        <!-- LIGA G12 GAMING -->
+        <section class="section section-dark" id="liga">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">COMPETICIÓN OFICIAL</p>
+                    <h2>Liga <span>G12.</span></h2>
+                    <p class="muted">Todos los enfrentamientos. Cada gol cuenta.</p>
+                </div>
+                <span class="section-tag">G12 LEAGUE</span>
+            </div>
+
+            <div class="league-info-grid">
+                <article class="stat-card">
+                    <span>PARTIDOS JUGADOS</span>
+                    <strong id="liga-total-partidos">0</strong>
+                </article>
+                <article class="stat-card">
+                    <span>JORNADAS DISPUTADAS</span>
+                    <strong id="liga-total-jornadas">0</strong>
+                </article>
+            </div>
+
+            <div class="league-results-heading">
+                <div>
+                    <p class="eyebrow">HISTORIAL OFICIAL</p>
+                    <h3>Resultados <span>de la liga.</span></h3>
+                </div>
+                <span class="section-tag">MATCH CENTER</span>
+            </div>
+
+            <div id="liga-resultados" class="league-results-grid">
+                <div class="empty-state">Cargando resultados de la liga...</div>
+            </div>
+        </section>
+
+        <!-- TORNEOS DEL CLUB -->
+        <section class="section" id="torneos">
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">COMPETICIÓN</p>
@@ -83,6 +135,7 @@
             <div id="lista-torneos" class="history-list"></div>
         </section>
 
+        <!-- TORNEOS INDIVIDUALES -->
         <section class="section" id="torneos-individuales">
             <div class="section-heading">
                 <div>
@@ -94,7 +147,8 @@
             <div id="lista-torneos-individuales" class="cards-grid"></div>
         </section>
 
-        <section class="section" id="palmares">
+        <!-- PALMARÉS DEL CLUB -->
+        <section class="section section-dark" id="palmares">
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">LO QUE HEMOS GANADO</p>
@@ -104,7 +158,6 @@
             </div>
             <div id="lista-trofeos" class="cards-grid"></div>
         </section>
-
     </main>
 
     <footer>
