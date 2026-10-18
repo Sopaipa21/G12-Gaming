@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -28,7 +27,7 @@
                 <div>
                     <p class="eyebrow">G12 GAMING · ACCESO RESTRINGIDO</p>
                     <h2>Panel de <span>administración.</span></h2>
-                    <p class="muted">Gestiona jugadores, estadísticas, torneos y trofeos del club.</p>
+                    <p class="muted">Gestiona jugadores, estadísticas, torneos, trofeos y resultados de la liga.</p>
                 </div>
             </div>
 
@@ -237,6 +236,77 @@
                     <button class="button" type="submit">GUARDAR LOGRO</button>
                     <button class="button button-secondary hidden" id="cancelar-trofeo" type="button">CANCELAR EDICIÓN</button>
                 </form>
+
+                <!-- LIGA: REGISTRAR EQUIPOS -->
+                <section class="admin-card" id="admin-liga-equipos">
+                    <h3>Equipos de la liga</h3>
+                    <p class="muted">Registra los equipos que participan en la competición.</p>
+
+                    <form id="form-liga-equipo">
+                        <label for="liga-equipo-nombre">Nombre del equipo</label>
+                        <input id="liga-equipo-nombre" name="nombre" required maxlength="80" placeholder="Ej. G12 Gaming">
+
+                        <button class="button" type="submit">AÑADIR EQUIPO</button>
+                    </form>
+
+                    <div id="liga-equipos-admin" class="admin-record-list">
+                        <p class="muted">Todavía no hay equipos registrados.</p>
+                    </div>
+                </section>
+
+                <!-- LIGA: REGISTRAR RESULTADOS -->
+                <section class="admin-card" id="admin-liga-resultados">
+                    <h3>Registrar resultado de liga</h3>
+                    <p class="muted">Introduce la jornada, los equipos y el marcador final.</p>
+
+                    <form id="form-liga-partido">
+                        <label for="liga-jornada">Jornada</label>
+                        <input id="liga-jornada" name="jornada" type="number" min="1" step="1" required placeholder="Ej. 1">
+
+                        <label for="liga-fecha">Fecha del partido</label>
+                        <input id="liga-fecha" name="fecha" type="date">
+
+                        <label for="liga-equipo-a">Equipo local</label>
+                        <select id="liga-equipo-a" name="equipoA" required>
+                            <option value="">Primero registra los equipos</option>
+                        </select>
+
+                        <label for="liga-equipo-b">Equipo visitante</label>
+                        <select id="liga-equipo-b" name="equipoB" required>
+                            <option value="">Primero registra los equipos</option>
+                        </select>
+
+                        <div class="score-row">
+                            <div>
+                                <label for="liga-goles-a">Goles equipo local</label>
+                                <input id="liga-goles-a" name="golesA" type="number" min="0" max="99" step="1" required placeholder="0">
+                            </div>
+
+                            <span class="score-dash">–</span>
+
+                            <div>
+                                <label for="liga-goles-b">Goles equipo visitante</label>
+                                <input id="liga-goles-b" name="golesB" type="number" min="0" max="99" step="1" required placeholder="0">
+                            </div>
+                        </div>
+
+                        <label for="liga-goles-jugadores">Goleadores (opcional)</label>
+                        <textarea id="liga-goles-jugadores" name="goleadores" rows="2" maxlength="500" placeholder="Ej. Kxzers (2), iElvxz7 (1)"></textarea>
+
+                        <label for="liga-asistencias-jugadores">Asistencias (opcional)</label>
+                        <textarea id="liga-asistencias-jugadores" name="asistencias" rows="2" maxlength="500" placeholder="Ej. Kxzers (1), iElvxz7 (2)"></textarea>
+
+                        <label for="liga-notas">Notas del partido (opcional)</label>
+                        <textarea id="liga-notas" name="notas" rows="2" maxlength="500" placeholder="Detalles del encuentro..."></textarea>
+
+                        <button class="button" type="submit">GUARDAR RESULTADO</button>
+                    </form>
+
+                    <h4>Partidos registrados</h4>
+                    <div id="liga-partidos-admin" class="admin-record-list">
+                        <p class="muted">Todavía no hay partidos registrados.</p>
+                    </div>
+                </section>
             </div>
 
             <p class="storage-note" id="estado-datos">Conectando con la base de datos del club...</p>

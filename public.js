@@ -436,15 +436,38 @@ function crearDetalleEstadistica(etiqueta, valor) {
     `;
 }
 
+
 function tarjetaResultadoLiga(partido) {
-    const equipo1 = obtenerNombreEquipoLiga(partido.equipo1Id, partido.equipo1Nombre);
-    const equipo2 = obtenerNombreEquipoLiga(partido.equipo2Id, partido.equipo2Nombre);
+    const equipo1Id = partido.equipoA ?? partido.equipo1Id;
+    const equipo2Id = partido.equipoB ?? partido.equipo2Id;
 
-    const goles1 = Number(partido.goles1);
-    const goles2 = Number(partido.goles2);
+    const equipo1 = obtenerNombreEquipoLiga(
+        equipo1Id,
+        partido.equipo1Nombre
+    );
 
-    const marcadorValido = Number.isInteger(goles1) &&
-        Number.isInteger(goles2) && goles1 >= 0 && goles2 >= 0;
+    const equipo2 = obtenerNombreEquipoLiga(
+        equipo2Id,
+        partido.equipo2Nombre
+    );
+
+    const goles1Original = partido.golesA ?? partido.goles1;
+    const goles2Original = partido.golesB ?? partido.goles2;
+
+    const goles1 = Number(goles1Original);
+    const goles2 = Number(goles2Original);
+
+    const marcadorValido =
+        goles1Original !== null &&
+        goles1Original !== undefined &&
+        String(goles1Original).trim() !== "" &&
+        goles2Original !== null &&
+        goles2Original !== undefined &&
+        String(goles2Original).trim() !== "" &&
+        Number.isInteger(goles1) &&
+        Number.isInteger(goles2) &&
+        goles1 >= 0 &&
+        goles2 >= 0;
 
     const resultado1 = marcadorValido ? goles1 : "—";
     const resultado2 = marcadorValido ? goles2 : "—";
@@ -459,10 +482,22 @@ function tarjetaResultadoLiga(partido) {
         : "PARTIDO DE LIGA";
 
     const detalles = [
-        crearDetalleEstadistica("Goleadores · " + equipo1, partido.goleadores1),
-        crearDetalleEstadistica("Goleadores · " + equipo2, partido.goleadores2),
-        crearDetalleEstadistica("Asistencias · " + equipo1, partido.asistencias1),
-        crearDetalleEstadistica("Asistencias · " + equipo2, partido.asistencias2),
+        crearDetalleEstadistica(
+            "Goleadores · " + equipo1,
+            partido.goleadores1 ?? partido.goleadores
+        ),
+        crearDetalleEstadistica(
+            "Goleadores · " + equipo2,
+            partido.goleadores2
+        ),
+        crearDetalleEstadistica(
+            "Asistencias · " + equipo1,
+            partido.asistencias1 ?? partido.asistencias
+        ),
+        crearDetalleEstadistica(
+            "Asistencias · " + equipo2,
+            partido.asistencias2
+        ),
         crearDetalleEstadistica("Notas del partido", partido.notas)
     ].filter(Boolean);
 
@@ -473,10 +508,16 @@ function tarjetaResultadoLiga(partido) {
                     <span>Ver estadísticas</span>
                     <span class="league-stats-arrow" aria-hidden="true">⌄</span>
                 </summary>
-                <div class="league-result-details">${detalles.join("")}</div>
+                <div class="league-result-details">
+                    ${detalles.join("")}
+                </div>
             </details>
         `
-        : `<div class="league-result-no-stats">No hay estadísticas adicionales registradas.</div>`;
+        : `
+            <div class="league-result-no-stats">
+                No hay estadísticas adicionales registradas.
+            </div>
+        `;
 
     return `
         <article class="league-match-card">
@@ -489,35 +530,55 @@ function tarjetaResultadoLiga(partido) {
 
             <div class="league-match-scoreboard">
                 <div class="league-match-team ${ganador1 ? "is-winner" : ""}">
-                    <span class="league-match-team-name">${escapar(equipo1)}</span>
-                    ${ganador1 ? '<span class="league-match-winner">VICTORIA</span>' : ""}
+                    <span class="league-match-team-name">
+                        ${escapar(equipo1)}
+                    </span>
+                    ${ganador1
+                        ? '<span class="league-match-winner">VICTORIA</span>'
+                        : ""}
                 </div>
 
                 <div class="league-match-score">
-                    <span class="${ganador1 ? "score-winner" : ""}">${resultado1}</span>
+                    <span class="${ganador1 ? "score-winner" : ""}">
+                        ${resultado1}
+                    </span>
                     <span class="league-match-dash">:</span>
-                    <span class="${ganador2 ? "score-winner" : ""}">${resultado2}</span>
+                    <span class="${ganador2 ? "score-winner" : ""}">
+                        ${resultado2}
+                    </span>
                 </div>
 
                 <div class="league-match-team league-match-team-right ${ganador2 ? "is-winner" : ""}">
-                    <span class="league-match-team-name">${escapar(equipo2)}</span>
-                    ${ganador2 ? '<span class="league-match-winner">VICTORIA</span>' : ""}
+                    <span class="league-match-team-name">
+                        ${escapar(equipo2)}
+                    </span>
+                    ${ganador2
+                        ? '<span class="league-match-winner">VICTORIA</span>'
+                        : ""}
                 </div>
             </div>
 
             <div class="league-match-footer">
                 <span class="league-match-date">
-                    ${partido.fecha ? escapar(formatearFecha(partido.fecha)) : "Fecha no registrada"}
+                    ${partido.fecha
+                        ? escapar(formatearFecha(partido.fecha))
+                        : "Fecha no registrada"}
                 </span>
                 <span class="league-match-status">
-                    ${marcadorValido ? "RESULTADO FINAL" : "MARCADOR PENDIENTE"}
+                    ${marcadorValido
+                        ? "RESULTADO FINAL"
+                        : "MARCADOR PENDIENTE"}
                 </span>
             </div>
 
-            <div class="league-match-statistics">${estadisticasHTML}</div>
+            <div class="league-match-statistics">
+                ${estadisticasHTML}
+            </div>
         </article>
     `;
 }
+
+
 
 function renderResultadosLiga() {
     const contenedor = document.getElementById("liga-resultados");
@@ -529,12 +590,17 @@ function renderResultadosLiga() {
     );
 
     const partidosValidos = partidos.filter(partido => {
+        const equipo1Id = partido.equipoA ?? partido.equipo1Id;
+        const equipo2Id = partido.equipoB ?? partido.equipo2Id;
+
         const tieneEquipo1 = datos.ligaEquipos.some(
-            equipo => String(equipo.id) === String(partido.equipo1Id)
+            equipo => String(equipo.id) === String(equipo1Id)
         );
+
         const tieneEquipo2 = datos.ligaEquipos.some(
-            equipo => String(equipo.id) === String(partido.equipo2Id)
+            equipo => String(equipo.id) === String(equipo2Id)
         );
+
         return tieneEquipo1 && tieneEquipo2;
     });
 
@@ -542,6 +608,7 @@ function renderResultadosLiga() {
         ? partidosValidos.map(tarjetaResultadoLiga).join("")
         : mensajeVacio("Todavía no hay partidos registrados.");
 }
+
 
 function actualizarContadoresLiga() {
     const partidos = document.getElementById("liga-total-partidos");

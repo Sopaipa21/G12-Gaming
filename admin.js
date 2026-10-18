@@ -1,4 +1,3 @@
-
 "use strict";
 
 /* G12 GAMING — Panel privado de administración */
@@ -32,6 +31,15 @@ const formularioJugador = document.getElementById("form-jugador");
 const formularioTorneo = document.getElementById("form-torneo");
 const formularioTrofeo = document.getElementById("form-trofeo");
 
+const formularioLigaEquipo = document.getElementById("form-liga-equipo");
+const formularioLigaPartido = document.getElementById("form-liga-partido");
+
+const listaLigaEquipos = document.getElementById("liga-equipos-admin");
+const listaLigaPartidos = document.getElementById("liga-partidos-admin");
+
+const selectorEquipoA = document.getElementById("liga-equipo-a");
+const selectorEquipoB = document.getElementById("liga-equipo-b");
+
 const datos = {
     jugadores: [],
     torneos: [],
@@ -58,6 +66,8 @@ const nombresSingulares = {
     trofeos: "trofeo"
 };
 
+/* UTILIDADES */
+
 function mostrarMensajeLogin(mensaje) {
     if (mensajeLogin) mensajeLogin.textContent = mensaje;
 }
@@ -76,6 +86,7 @@ function actualizarInterfaz(esAdmin) {
     botonCerrarSesion?.classList.toggle("hidden", !esAdmin);
 
     const titulo = accesoAdmin?.querySelector("h3");
+
     if (titulo) {
         titulo.textContent = esAdmin
             ? "Sesión de administrador"
@@ -88,21 +99,43 @@ function crearId() {
         return window.crypto.randomUUID();
     }
 
-    return "g12-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+    return "g12-" + Date.now() + "-" +
+        Math.random().toString(36).slice(2, 10);
 }
 
 function valor(formulario, nombre) {
-    return String(formulario.elements.namedItem(nombre)?.value ?? "").trim();
+    return String(
+        formulario.elements.namedItem(nombre)?.value ?? ""
+    ).trim();
 }
 
 function numeroOpcional(formulario, nombre) {
     const texto = valor(formulario, nombre);
+
     if (texto === "") return null;
 
     const numero = Number(texto);
 
     if (!Number.isFinite(numero) || numero < 0) {
-        throw new Error(`El campo "${nombre}" debe ser un número válido igual o superior a 0.`);
+        throw new Error(
+            `El campo "${nombre}" debe ser un número igual o superior a 0.`
+        );
+    }
+
+    return numero;
+}
+
+function numeroEstadistica(formulario, nombre) {
+    const texto = valor(formulario, nombre);
+
+    if (texto === "") return 0;
+
+    const numero = Number(texto);
+
+    if (!Number.isInteger(numero) || numero < 0) {
+        throw new Error(
+            `La estadística "${nombre}" debe ser un entero igual o superior a 0.`
+        );
     }
 
     return numero;
@@ -116,23 +149,36 @@ function normalizarEstadistica(valorOriginal) {
         : 0;
 }
 
-function numeroEstadistica(formulario, nombre) {
-    const texto = valor(formulario, nombre);
+function crearElemento(etiqueta, clase, texto) {
+    const elemento = document.createElement(etiqueta);
 
-    if (texto === "") return 0;
+    if (clase) elemento.className = clase;
 
-    const numero = Number(texto);
-
-    if (!Number.isInteger(numero) || numero < 0) {
-        throw new Error(
-            `La estadística "${nombre}" debe ser un número entero igual o superior a 0.`
-        );
+    if (texto !== undefined) {
+        elemento.textContent = String(texto ?? "");
     }
 
-    return numero;
+    return elemento;
 }
 
-/* NORMALIZACIÓN: MANTENER TODAS LAS COLECCIONES */
+function crearBoton(texto, accion, tipo, id) {
+    const boton = crearElemento(
+        "button",
+        tipo === "eliminar"
+            ? "button button-secondary"
+            : "button",
+        texto
+    );
+
+    boton.type = "button";
+    boton.dataset.action = accion;
+    boton.dataset.tipo = tipo;
+    boton.dataset.id = id;
+
+    return boton;
+}
+
+/* NORMALIZACIÓN DE DATOS */
 
 function prepararColecciones() {
     for (const clave of Object.keys(datos)) {
@@ -149,9 +195,23 @@ function prepararColecciones() {
         asistencias: normalizarEstadistica(jugador.asistencias),
         salvadas: normalizarEstadistica(jugador.salvadas)
     }));
+
+    datos.ligaEquipos = datos.ligaEquipos.map(equipo => ({
+        ...equipo,
+        id: equipo.id || crearId(),
+        nombre: String(equipo.nombre || "")
+    }));
+
+    datos.ligaPartidos = datos.ligaPartidos.map(partido => ({
+        ...partido,
+        id: partido.id || crearId(),
+        jornada: Number(partido.jornada || 1),
+        golesA: Number(partido.golesA || 0),
+        golesB: Number(partido.golesB || 0)
+    }));
 }
 
-/* FIRESTORE */
+/* FIREBASE: LECTURA Y GUARDADO */
 
 function detenerLecturaDatos() {
     if (detenerSincronizacion) {
@@ -167,9 +227,10 @@ function iniciarLecturaDatos() {
     detenerSincronizacion = documentoDatos.onSnapshot(documento => {
         if (!esAdministrador()) return;
 
-        const contenido = documento.exists ? (documento.data() || {}) : {};
+        const contenido = documento.exists
+            ? documento.data() || {}
+            : {};
 
-        // Lee las claves conocidas sin borrar ni ignorar el resto al guardar.
         for (const clave of Object.keys(datos)) {
             datos[clave] = Array.isArray(contenido[clave])
                 ? contenido[clave]
@@ -186,9 +247,12 @@ function iniciarLecturaDatos() {
 
         renderizarListas();
         actualizarMarcadorSerie();
+        renderLigaAdmin();
     }, error => {
         console.error("Error al leer Firestore:", error);
-        mostrarEstado("Error al cargar los datos. Comprueba las reglas de Firestore y la conexión.");
+        mostrarEstado(
+            "Error al cargar los datos. Comprueba las reglas de Firestore y la conexión."
+        );
     });
 }
 
@@ -205,7 +269,6 @@ async function guardarColecciones() {
     mostrarEstado("Guardando cambios en Firebase...");
 
     try {
-        // merge conserva las colecciones que no se modifican desde este panel.
         await documentoDatos.set({
             jugadores: datos.jugadores,
             torneos: datos.torneos,
@@ -242,6 +305,7 @@ function calcularSerie(torneo) {
     }
 
     let resultado = "Pendiente";
+
     if (victoriasG12 >= 2) resultado = "Victoria G12";
     else if (victoriasRival >= 2) resultado = "Victoria rival";
 
@@ -251,14 +315,20 @@ function calcularSerie(torneo) {
 function actualizarMarcadorSerie() {
     if (!formularioTorneo) return;
 
-    const serie = {
-        g12_1: numeroOpcional(formularioTorneo, "g12_1"),
-        rival_1: numeroOpcional(formularioTorneo, "rival_1"),
-        g12_2: numeroOpcional(formularioTorneo, "g12_2"),
-        rival_2: numeroOpcional(formularioTorneo, "rival_2"),
-        g12_3: numeroOpcional(formularioTorneo, "g12_3"),
-        rival_3: numeroOpcional(formularioTorneo, "rival_3")
-    };
+    let serie;
+
+    try {
+        serie = {
+            g12_1: numeroOpcional(formularioTorneo, "g12_1"),
+            rival_1: numeroOpcional(formularioTorneo, "rival_1"),
+            g12_2: numeroOpcional(formularioTorneo, "g12_2"),
+            rival_2: numeroOpcional(formularioTorneo, "rival_2"),
+            g12_3: numeroOpcional(formularioTorneo, "g12_3"),
+            rival_3: numeroOpcional(formularioTorneo, "rival_3")
+        };
+    } catch (_) {
+        return;
+    }
 
     const resultado = calcularSerie(serie);
 
@@ -266,9 +336,17 @@ function actualizarMarcadorSerie() {
     const victoriasRival = document.getElementById("victorias-rival");
     const resultadoSerie = document.getElementById("resultado-serie");
 
-    if (victoriasG12) victoriasG12.textContent = resultado.victoriasG12;
-    if (victoriasRival) victoriasRival.textContent = resultado.victoriasRival;
-    if (resultadoSerie) resultadoSerie.textContent = resultado.resultado;
+    if (victoriasG12) {
+        victoriasG12.textContent = resultado.victoriasG12;
+    }
+
+    if (victoriasRival) {
+        victoriasRival.textContent = resultado.victoriasRival;
+    }
+
+    if (resultadoSerie) {
+        resultadoSerie.textContent = resultado.resultado;
+    }
 }
 
 function validarMarcadores(torneo) {
@@ -286,7 +364,10 @@ function validarMarcadores(torneo) {
         }
     }
 
-    const hayMarcadores = partidas.some(p => p.g12 !== null && p.rival !== null);
+    const hayMarcadores = partidas.some(
+        p => p.g12 !== null && p.rival !== null
+    );
+
     if (!hayMarcadores) return "";
 
     if (partidas[0].g12 === null || partidas[1].g12 === null) {
@@ -320,31 +401,7 @@ function validarMarcadores(torneo) {
     return "";
 }
 
-/* LISTAS DE GESTIÓN */
-
-function crearElemento(etiqueta, clase, texto) {
-    const elemento = document.createElement(etiqueta);
-
-    if (clase) elemento.className = clase;
-    if (texto !== undefined) elemento.textContent = String(texto ?? "");
-
-    return elemento;
-}
-
-function crearBoton(texto, accion, tipo, id) {
-    const boton = crearElemento(
-        "button",
-        tipo === "eliminar" ? "button button-secondary" : "button",
-        texto
-    );
-
-    boton.type = "button";
-    boton.dataset.action = accion;
-    boton.dataset.tipo = tipo;
-    boton.dataset.id = id;
-
-    return boton;
-}
+/* LISTAS DE JUGADORES, TORNEOS Y TROFEOS */
 
 function descripcionRegistro(tipo, item) {
     if (tipo === "jugadores") {
@@ -354,7 +411,7 @@ function descripcionRegistro(tipo, item) {
         const mmrPeak = item.mmrPeak;
 
         return [
-            rangoActual ? `Actual: ${rangoActual}` : "Rango actual sin indicar",
+            rangoActual ? `Actual: ${rangoActual}` : "",
             mmrActual !== null && mmrActual !== undefined && mmrActual !== ""
                 ? `MMR: ${mmrActual}` : "",
             rangoPeak ? `Peak: ${rangoPeak}` : "",
@@ -376,7 +433,8 @@ function descripcionRegistro(tipo, item) {
             item.modo || "",
             item.resultado || "",
             serie.resultado !== "Pendiente"
-                ? `${serie.victoriasG12}-${serie.victoriasRival}` : ""
+                ? `${serie.victoriasG12}-${serie.victoriasRival}`
+                : ""
         ].filter(Boolean).join(" · ");
     }
 
@@ -392,15 +450,23 @@ function crearTarjetaRegistro(tipo, item) {
 
     tarjeta.append(
         crearElemento("h3", "", item.nombre || "Registro sin nombre"),
-        crearElemento("p", "muted", descripcionRegistro(tipo, item) || "Sin detalles adicionales.")
+        crearElemento(
+            "p",
+            "muted",
+            descripcionRegistro(tipo, item) || "Sin detalles adicionales."
+        )
     );
 
     if (tipo === "torneos" && item.rival) {
-        tarjeta.append(crearElemento("p", "small", `Rival: ${item.rival}`));
+        tarjeta.append(
+            crearElemento("p", "small", `Rival: ${item.rival}`)
+        );
     }
 
     if ((tipo === "torneos" || tipo === "trofeos") && item.notas) {
-        tarjeta.append(crearElemento("p", "small", item.notas));
+        tarjeta.append(
+            crearElemento("p", "small", item.notas)
+        );
     }
 
     const acciones = crearElemento("div", "admin-actions");
@@ -411,6 +477,7 @@ function crearTarjetaRegistro(tipo, item) {
     );
 
     tarjeta.append(acciones);
+
     return tarjeta;
 }
 
@@ -438,16 +505,23 @@ function renderizarListas() {
         const seccion = crearElemento("section", "admin-card");
         seccion.style.marginTop = "1rem";
 
-        const cabecera = crearElemento("h3", "", titulo);
         const lista = crearElemento("div", "admin-record-list");
 
-        seccion.append(cabecera, lista);
+        seccion.append(
+            crearElemento("h3", "", titulo),
+            lista
+        );
 
         if (datos[tipo].length === 0) {
-            lista.append(crearElemento("p", "muted", "Todavía no hay registros."));
+            lista.append(
+                crearElemento("p", "muted", "Todavía no hay registros.")
+            );
         } else {
             const ordenados = [...datos[tipo]].sort((a, b) =>
-                String(a.nombre || "").localeCompare(String(b.nombre || ""), "es")
+                String(a.nombre || "").localeCompare(
+                    String(b.nombre || ""),
+                    "es"
+                )
             );
 
             for (const item of ordenados) {
@@ -459,7 +533,7 @@ function renderizarListas() {
     }
 }
 
-/* FORMULARIOS: CREAR Y EDITAR */
+/* FORMULARIOS DE CREAR Y EDITAR */
 
 function rellenarFormulario(formulario, item) {
     for (const elemento of formulario.elements) {
@@ -551,7 +625,10 @@ function editarRegistro(tipo, id) {
 
     if (tipo === "torneos") actualizarMarcadorSerie();
 
-    formulario.scrollIntoView({ behavior: "smooth", block: "start" });
+    formulario.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
 }
 
 /* CONSTRUIR REGISTROS */
@@ -613,7 +690,7 @@ function construirTrofeo(formulario, id) {
     };
 }
 
-/* GUARDAR REGISTROS */
+/* GUARDAR JUGADORES, TORNEOS Y TROFEOS */
 
 async function guardarRegistro(tipo, formulario) {
     if (!esAdministrador()) {
@@ -639,6 +716,7 @@ async function guardarRegistro(tipo, formulario) {
             registro = construirTorneo(formulario, id);
 
             const errorMarcadores = validarMarcadores(registro);
+
             if (errorMarcadores) {
                 mostrarEstado(errorMarcadores);
                 return;
@@ -667,8 +745,8 @@ async function guardarRegistro(tipo, formulario) {
         return;
     }
 
-    const anterior = datos[tipo].findIndex(item => item.id === id);
     const copiaAnterior = datos[tipo].map(item => ({ ...item }));
+    const anterior = datos[tipo].findIndex(item => item.id === id);
 
     if (anterior >= 0) {
         datos[tipo][anterior] = registro;
@@ -677,6 +755,7 @@ async function guardarRegistro(tipo, formulario) {
     }
 
     const botonGuardar = formulario.querySelector('button[type="submit"]');
+
     if (botonGuardar) botonGuardar.disabled = true;
 
     try {
@@ -686,14 +765,324 @@ async function guardarRegistro(tipo, formulario) {
     } catch (error) {
         console.error("Error al guardar:", error);
         datos[tipo] = copiaAnterior;
-        mostrarEstado("No se pudieron guardar los cambios. Comprueba tu conexión y los permisos de Firestore.");
+
+        mostrarEstado(
+            "No se pudieron guardar los cambios. Comprueba tu conexión y los permisos de Firestore."
+        );
+
         renderizarListas();
     } finally {
         if (botonGuardar) botonGuardar.disabled = false;
     }
 }
 
-/* ELIMINAR REGISTROS */
+/* ==============================
+   LIGA: SELECTORES DE EQUIPOS
+============================== */
+
+function actualizarSelectoresLiga() {
+    if (!selectorEquipoA || !selectorEquipoB) return;
+
+    const valorAnteriorA = selectorEquipoA.value;
+    const valorAnteriorB = selectorEquipoB.value;
+
+    selectorEquipoA.replaceChildren();
+    selectorEquipoB.replaceChildren();
+
+    const opcionInicialA = crearElemento(
+        "option",
+        "",
+        datos.ligaEquipos.length
+            ? "Selecciona el equipo local"
+            : "Primero registra los equipos"
+    );
+
+    opcionInicialA.value = "";
+    selectorEquipoA.append(opcionInicialA);
+
+    const opcionInicialB = crearElemento(
+        "option",
+        "",
+        datos.ligaEquipos.length
+            ? "Selecciona el equipo visitante"
+            : "Primero registra los equipos"
+    );
+
+    opcionInicialB.value = "";
+    selectorEquipoB.append(opcionInicialB);
+
+    for (const equipo of datos.ligaEquipos) {
+        const opcionA = crearElemento("option", "", equipo.nombre);
+        opcionA.value = equipo.id;
+        selectorEquipoA.append(opcionA);
+
+        const opcionB = crearElemento("option", "", equipo.nombre);
+        opcionB.value = equipo.id;
+        selectorEquipoB.append(opcionB);
+    }
+
+    if (datos.ligaEquipos.some(e => e.id === valorAnteriorA)) {
+        selectorEquipoA.value = valorAnteriorA;
+    }
+
+    if (datos.ligaEquipos.some(e => e.id === valorAnteriorB)) {
+        selectorEquipoB.value = valorAnteriorB;
+    }
+}
+
+function nombreEquipo(id) {
+    const equipo = datos.ligaEquipos.find(
+        item => String(item.id) === String(id)
+    );
+
+    return equipo ? equipo.nombre : "Equipo eliminado";
+}
+
+/* LIGA: MOSTRAR EQUIPOS Y PARTIDOS */
+
+function renderLigaAdmin() {
+    actualizarSelectoresLiga();
+
+    if (listaLigaEquipos) {
+        listaLigaEquipos.replaceChildren();
+
+        if (datos.ligaEquipos.length === 0) {
+            listaLigaEquipos.append(
+                crearElemento("p", "muted", "Todavía no hay equipos registrados.")
+            );
+        } else {
+            for (const equipo of datos.ligaEquipos) {
+                const tarjeta = crearElemento("article", "admin-card");
+
+                tarjeta.append(
+                    crearElemento("h4", "", equipo.nombre)
+                );
+
+                const acciones = crearElemento("div", "admin-actions");
+
+                acciones.append(
+                    crearBoton("ELIMINAR EQUIPO", "eliminar", "liga-equipo", equipo.id)
+                );
+
+                tarjeta.append(acciones);
+                listaLigaEquipos.append(tarjeta);
+            }
+        }
+    }
+
+    if (listaLigaPartidos) {
+        listaLigaPartidos.replaceChildren();
+
+        if (datos.ligaPartidos.length === 0) {
+            listaLigaPartidos.append(
+                crearElemento("p", "muted", "Todavía no hay partidos registrados.")
+            );
+        } else {
+            const partidosOrdenados = [...datos.ligaPartidos].sort((a, b) =>
+                Number(a.jornada) - Number(b.jornada) ||
+                String(a.fecha || "").localeCompare(String(b.fecha || ""))
+            );
+
+            for (const partido of partidosOrdenados) {
+                const tarjeta = crearElemento("article", "admin-card");
+                const cabecera = crearElemento(
+                    "p",
+                    "eyebrow",
+                    `JORNADA ${partido.jornada}${partido.fecha ? " · " + partido.fecha : ""}`
+                );
+
+                const marcador = crearElemento(
+                    "h3",
+                    "",
+                    `${nombreEquipo(partido.equipoA)} ${partido.golesA} – ${partido.golesB} ${nombreEquipo(partido.equipoB)}`
+                );
+
+                tarjeta.append(cabecera, marcador);
+
+                if (partido.goleadores) {
+                    tarjeta.append(
+                        crearElemento("p", "small", `Goleadores: ${partido.goleadores}`)
+                    );
+                }
+
+                if (partido.asistencias) {
+                    tarjeta.append(
+                        crearElemento("p", "small", `Asistencias: ${partido.asistencias}`)
+                    );
+                }
+
+                if (partido.notas) {
+                    tarjeta.append(
+                        crearElemento("p", "small", partido.notas)
+                    );
+                }
+
+                const acciones = crearElemento("div", "admin-actions");
+
+                acciones.append(
+                    crearBoton("ELIMINAR RESULTADO", "eliminar", "liga-partido", partido.id)
+                );
+
+                tarjeta.append(acciones);
+                listaLigaPartidos.append(tarjeta);
+            }
+        }
+    }
+}
+
+/* LIGA: AÑADIR EQUIPO */
+
+if (formularioLigaEquipo) {
+    formularioLigaEquipo.addEventListener("submit", async evento => {
+        evento.preventDefault();
+
+        if (!esAdministrador()) {
+            mostrarEstado("Inicia sesión como administrador.");
+            return;
+        }
+
+        if (guardando) {
+            mostrarEstado("Espera a que termine el guardado actual.");
+            return;
+        }
+
+        const nombre = valor(formularioLigaEquipo, "nombre");
+
+        if (!nombre) {
+            mostrarEstado("Escribe el nombre del equipo.");
+            return;
+        }
+
+        const duplicado = datos.ligaEquipos.some(equipo =>
+            equipo.nombre.toLocaleLowerCase("es") ===
+            nombre.toLocaleLowerCase("es")
+        );
+
+        if (duplicado) {
+            mostrarEstado("Ese equipo ya está registrado en la liga.");
+            return;
+        }
+
+        const copiaAnterior = [...datos.ligaEquipos];
+
+        datos.ligaEquipos.push({
+            id: crearId(),
+            nombre
+        });
+
+        const boton = formularioLigaEquipo.querySelector(
+            'button[type="submit"]'
+        );
+
+        if (boton) boton.disabled = true;
+
+        try {
+            await guardarColecciones();
+            formularioLigaEquipo.reset();
+            renderLigaAdmin();
+        } catch (error) {
+            console.error("Error al guardar equipo:", error);
+            datos.ligaEquipos = copiaAnterior;
+
+            mostrarEstado(
+                "No se pudo guardar el equipo. Comprueba la conexión."
+            );
+
+            renderLigaAdmin();
+        } finally {
+            if (boton) boton.disabled = false;
+        }
+    });
+}
+
+/* LIGA: GUARDAR RESULTADO */
+
+if (formularioLigaPartido) {
+    formularioLigaPartido.addEventListener("submit", async evento => {
+        evento.preventDefault();
+
+        if (!esAdministrador()) {
+            mostrarEstado("Inicia sesión como administrador.");
+            return;
+        }
+
+        if (guardando) {
+            mostrarEstado("Espera a que termine el guardado actual.");
+            return;
+        }
+
+        const jornada = Number(valor(formularioLigaPartido, "jornada"));
+        const equipoA = valor(formularioLigaPartido, "equipoA");
+        const equipoB = valor(formularioLigaPartido, "equipoB");
+        const golesA = Number(valor(formularioLigaPartido, "golesA"));
+        const golesB = Number(valor(formularioLigaPartido, "golesB"));
+
+        if (!Number.isInteger(jornada) || jornada < 1) {
+            mostrarEstado("La jornada debe ser un número entero superior a 0.");
+            return;
+        }
+
+        if (!equipoA || !equipoB) {
+            mostrarEstado("Selecciona los dos equipos.");
+            return;
+        }
+
+        if (equipoA === equipoB) {
+            mostrarEstado("Un equipo no puede jugar contra sí mismo.");
+            return;
+        }
+
+        if (
+            !Number.isInteger(golesA) || golesA < 0 ||
+            !Number.isInteger(golesB) || golesB < 0
+        ) {
+            mostrarEstado("Introduce dos marcadores válidos.");
+            return;
+        }
+
+        const copiaAnterior = [...datos.ligaPartidos];
+
+        const partido = {
+            id: crearId(),
+            jornada,
+            fecha: valor(formularioLigaPartido, "fecha"),
+            equipoA,
+            equipoB,
+            golesA,
+            golesB,
+            goleadores: valor(formularioLigaPartido, "goleadores"),
+            asistencias: valor(formularioLigaPartido, "asistencias"),
+            notas: valor(formularioLigaPartido, "notas")
+        };
+
+        datos.ligaPartidos.push(partido);
+
+        const boton = formularioLigaPartido.querySelector(
+            'button[type="submit"]'
+        );
+
+        if (boton) boton.disabled = true;
+
+        try {
+            await guardarColecciones();
+            formularioLigaPartido.reset();
+            renderLigaAdmin();
+        } catch (error) {
+            console.error("Error al guardar resultado:", error);
+            datos.ligaPartidos = copiaAnterior;
+
+            mostrarEstado(
+                "No se pudo guardar el resultado. Comprueba la conexión."
+            );
+
+            renderLigaAdmin();
+        } finally {
+            if (boton) boton.disabled = false;
+        }
+    });
+}
+
+/* ELIMINAR REGISTROS Y ELEMENTOS DE LA LIGA */
 
 async function eliminarRegistro(tipo, id) {
     if (!esAdministrador()) return;
@@ -706,24 +1095,91 @@ async function eliminarRegistro(tipo, id) {
     )) return;
 
     const copiaAnterior = datos[tipo].map(item => ({ ...item }));
+
     datos[tipo] = datos[tipo].filter(item => item.id !== id);
 
     try {
         await guardarColecciones();
 
         const campoId = formularios[tipo]?.elements.namedItem("id");
-        if (campoId && campoId.value === id) cancelarEdicion(tipo);
+
+        if (campoId && campoId.value === id) {
+            cancelarEdicion(tipo);
+        }
 
         renderizarListas();
     } catch (error) {
         console.error("Error al eliminar:", error);
         datos[tipo] = copiaAnterior;
-        mostrarEstado("No se pudo eliminar el registro. Comprueba la conexión y los permisos.");
+
+        mostrarEstado(
+            "No se pudo eliminar el registro. Comprueba la conexión y los permisos."
+        );
+
         renderizarListas();
     }
 }
 
-/* CONECTAR FORMULARIOS Y BOTONES */
+async function eliminarElementoLiga(tipo, id) {
+    if (!esAdministrador() || guardando) return;
+
+    let registro;
+    let copiaAnterior;
+
+    if (tipo === "liga-equipo") {
+        registro = datos.ligaEquipos.find(item => item.id === id);
+
+        if (!registro) return;
+
+        const tienePartidos = datos.ligaPartidos.some(partido =>
+            partido.equipoA === id || partido.equipoB === id
+        );
+
+        if (tienePartidos) {
+            const confirmar = window.confirm(
+                `El equipo "${registro.nombre}" tiene partidos registrados. Si lo eliminas, esos partidos seguirán guardados, pero el nombre aparecerá como "Equipo eliminado". ¿Continuar?`
+            );
+
+            if (!confirmar) return;
+        } else if (!window.confirm(
+            `¿Eliminar el equipo "${registro.nombre}"?`
+        )) {
+            return;
+        }
+
+        copiaAnterior = [...datos.ligaEquipos];
+        datos.ligaEquipos = datos.ligaEquipos.filter(item => item.id !== id);
+    } else {
+        registro = datos.ligaPartidos.find(item => item.id === id);
+
+        if (!registro) return;
+
+        if (!window.confirm(
+            `¿Eliminar el resultado de la jornada ${registro.jornada}?`
+        )) return;
+
+        copiaAnterior = [...datos.ligaPartidos];
+        datos.ligaPartidos = datos.ligaPartidos.filter(item => item.id !== id);
+    }
+
+    try {
+        await guardarColecciones();
+        renderLigaAdmin();
+    } catch (error) {
+        console.error("Error al eliminar elemento de liga:", error);
+
+        if (tipo === "liga-equipo") {
+            datos.ligaEquipos = copiaAnterior;
+        } else {
+            datos.ligaPartidos = copiaAnterior;
+        }
+
+        mostrarEstado("No se pudo eliminar. Comprueba la conexión.");
+        renderLigaAdmin();
+    }
+}
+
+/* CONECTAR FORMULARIOS */
 
 for (const [tipo, formulario] of Object.entries(formularios)) {
     if (!formulario) continue;
@@ -743,16 +1199,26 @@ for (const [tipo, formulario] of Object.entries(formularios)) {
 
 contenidoAdmin?.addEventListener("click", async evento => {
     const boton = evento.target.closest("button[data-action]");
+
     if (!boton || !esAdministrador()) return;
 
     const { action: accion, tipo, id } = boton.dataset;
 
-    if (!formularios[tipo] || !id) return;
+    if (!id) return;
 
-    if (accion === "editar") {
-        editarRegistro(tipo, id);
-    } else if (accion === "eliminar") {
-        await eliminarRegistro(tipo, id);
+    if (formularios[tipo]) {
+        if (accion === "editar") {
+            editarRegistro(tipo, id);
+        } else if (accion === "eliminar") {
+            await eliminarRegistro(tipo, id);
+        }
+
+        return;
+    }
+
+    if (accion === "eliminar" &&
+        (tipo === "liga-equipo" || tipo === "liga-partido")) {
+        await eliminarElementoLiga(tipo, id);
     }
 });
 
@@ -775,7 +1241,9 @@ if (formularioLogin) {
             return;
         }
 
-        const boton = formularioLogin.querySelector('button[type="submit"]');
+        const boton = formularioLogin.querySelector(
+            'button[type="submit"]'
+        );
 
         if (boton) {
             boton.disabled = true;
@@ -785,11 +1253,17 @@ if (formularioLogin) {
         mostrarMensajeLogin("");
 
         try {
-            const resultado = await auth.signInWithEmailAndPassword(email, password);
+            const resultado = await auth.signInWithEmailAndPassword(
+                email,
+                password
+            );
 
             if (resultado.user.uid !== ADMIN_UID) {
                 await auth.signOut();
-                mostrarMensajeLogin("Esta cuenta no tiene permisos de administración.");
+
+                mostrarMensajeLogin(
+                    "Esta cuenta no tiene permisos de administración."
+                );
             }
         } catch (error) {
             console.error("Error de inicio de sesión:", error);
@@ -833,7 +1307,11 @@ auth.onAuthStateChanged(async usuario => {
     if (usuario && usuario.uid !== ADMIN_UID) {
         detenerLecturaDatos();
         actualizarInterfaz(false);
-        mostrarMensajeLogin("Esta cuenta no tiene permisos de administración.");
+
+        mostrarMensajeLogin(
+            "Esta cuenta no tiene permisos de administración."
+        );
+
         mostrarEstado("Acceso restringido.");
 
         try {
@@ -849,7 +1327,10 @@ auth.onAuthStateChanged(async usuario => {
     actualizarInterfaz(esAdmin);
 
     if (esAdmin) {
-        mostrarMensajeLogin(`Sesión iniciada: ${usuario.email || "Administrador"}`);
+        mostrarMensajeLogin(
+            `Sesión iniciada: ${usuario.email || "Administrador"}`
+        );
+
         iniciarLecturaDatos();
     } else {
         detenerLecturaDatos();
