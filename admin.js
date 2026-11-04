@@ -30,6 +30,23 @@ const estadoDatos = document.getElementById("estado-datos");
 const formularioJugador = document.getElementById("form-jugador");
 const formularioTorneo = document.getElementById("form-torneo");
 const formularioTrofeo = document.getElementById("form-trofeo");
+const formularioTorneoIndividual =
+    document.getElementById("form-torneo-individual");
+
+const selectorJugadorIndividual =
+    document.getElementById("torneo-individual-jugador");
+
+const selectorTipoIndividual =
+    document.getElementById("torneo-individual-tipo");
+
+const selectorTemporadaIndividual =
+    document.getElementById("torneo-individual-temporada");
+
+const contenedorTemporadaIndividual =
+    document.getElementById("torneo-individual-temporada-contenedor");
+
+const listaTorneosIndividuales =
+    document.getElementById("torneos-individuales-admin");
 
 const formularioLigaEquipo = document.getElementById("form-liga-equipo");
 const formularioLigaPartido = document.getElementById("form-liga-partido");
@@ -246,6 +263,7 @@ function iniciarLecturaDatos() {
         );
 
         renderizarListas();
+        renderTorneosIndividualesAdmin();
         actualizarMarcadorSerie();
         renderLigaAdmin();
     }, error => {
@@ -630,6 +648,356 @@ function editarRegistro(tipo, id) {
         block: "start"
     });
 }
+/* TORNEOS INDIVIDUALES */
+
+function actualizarSelectoresJugadoresIndividuales() {
+    if (!selectorJugadorIndividual) return;
+
+    const valorAnterior = selectorJugadorIndividual.value;
+
+    selectorJugadorIndividual.replaceChildren();
+
+    const inicial = crearElemento(
+        "option",
+        "",
+        "Selecciona un jugador"
+    );
+
+    inicial.value = "";
+    selectorJugadorIndividual.append(inicial);
+
+    const jugadoresOrdenados = [...datos.jugadores].sort(
+        (a, b) => String(a.nombre).localeCompare(String(b.nombre), "es")
+    );
+
+    for (const jugador of jugadoresOrdenados) {
+        const opcion = crearElemento("option", "", jugador.nombre);
+        opcion.value = jugador.id;
+        selectorJugadorIndividual.append(opcion);
+    }
+
+    if (datos.jugadores.some(j => j.id === valorAnterior)) {
+        selectorJugadorIndividual.value = valorAnterior;
+    }
+}
+
+function actualizarCampoTemporadaIndividual() {
+    if (!selectorTipoIndividual || !contenedorTemporadaIndividual) return;
+
+    const tipo = selectorTipoIndividual.value;
+
+    const necesitaTemporada =
+        tipo === "temporada" || tipo === "pentatlon";
+
+    contenedorTemporadaIndividual.classList.toggle(
+        "hidden",
+        !necesitaTemporada
+    );
+
+    if (selectorTemporadaIndividual) {
+        selectorTemporadaIndividual.required = necesitaTemporada;
+
+        if (!necesitaTemporada) {
+            selectorTemporadaIndividual.value = "";
+        }
+    }
+}
+
+function construirTorneoIndividual(formulario, id) {
+    const jugadorId = valor(formulario, "jugadorId");
+
+    const jugador = datos.jugadores.find(
+        j => String(j.id) === String(jugadorId)
+    );
+
+    if (!jugador) {
+        throw new Error("Selecciona un jugador válido.");
+    }
+
+    const tipoTorneo = valor(formulario, "tipoTorneo");
+
+    if (!["temporada", "fin-semana", "pentatlon", "otro"].includes(tipoTorneo)) {
+        throw new Error("Selecciona un tipo de torneo válido.");
+    }
+
+    const temporadaTexto = valor(formulario, "temporada");
+    let temporada = null;
+
+    if (tipoTorneo === "temporada" || tipoTorneo === "pentatlon") {
+        temporada = Number(temporadaTexto);
+
+        if (!Number.isInteger(temporada) || temporada < 1) {
+            throw new Error("Introduce una temporada válida.");
+        }
+    }
+
+    return {
+        id,
+        jugadorId: jugador.id,
+        jugadorNombre: jugador.nombre,
+        jugador: jugador.nombre,
+        nombreJugador: jugador.nombre,
+        tipoTorneo,
+        temporada,
+        rango: valor(formulario, "rango"),
+        descripcion: valor(formulario, "descripcion")
+    };
+}
+
+function renderTorneosIndividualesAdmin() {
+    if (!listaTorneosIndividuales) return;
+
+    listaTorneosIndividuales.replaceChildren();
+
+    actualizarSelectoresJugadoresIndividuales();
+
+    if (datos.torneosIndividuales.length === 0) {
+        listaTorneosIndividuales.append(
+            crearElemento(
+                "p",
+                "muted",
+                "Todavía no hay torneos individuales registrados."
+            )
+        );
+        return;
+    }
+
+    const nombresTipos = {
+        temporada: "Torneo de temporada",
+        "fin-semana": "Torneo de fin de semana",
+        pentatlon: "Pentatlón",
+        otro: "Otro"
+    };
+
+    const ordenados = [...datos.torneosIndividuales].sort(
+        (a, b) =>
+            String(a.jugadorNombre || a.jugador || a.nombreJugador || "")
+                .localeCompare(
+                    String(b.jugadorNombre || b.jugador || b.nombreJugador || ""),
+                    "es"
+                )
+    );
+
+    for (const torneo of ordenados) {
+        const tarjeta = crearElemento("article", "admin-card");
+
+        const jugador = datos.jugadores.find(
+            j => String(j.id) === String(torneo.jugadorId)
+        );
+
+        const nombreJugador =
+            jugador?.nombre ||
+            torneo.jugadorNombre ||
+            torneo.jugador ||
+            torneo.nombreJugador ||
+            "Jugador desconocido";
+
+        tarjeta.append(
+            crearElemento("h3", "", nombreJugador),
+            crearElemento(
+                "p",
+                "eyebrow",
+                nombresTipos[torneo.tipoTorneo] || "Torneo individual"
+            ),
+            crearElemento("p", "", `Rango: ${torneo.rango || "No especificado"}`)
+        );
+
+        if (
+            torneo.temporada !== null &&
+            torneo.temporada !== undefined &&
+            torneo.temporada !== ""
+        ) {
+            tarjeta.append(
+                crearElemento("p", "muted", `Temporada ${torneo.temporada}`)
+            );
+        }
+
+        if (torneo.descripcion) {
+            tarjeta.append(
+                crearElemento("p", "small", torneo.descripcion)
+            );
+        }
+
+        const acciones = crearElemento("div", "admin-actions");
+
+        acciones.append(
+            crearBoton("EDITAR", "editar", "torneo-individual", torneo.id),
+            crearBoton("ELIMINAR", "eliminar", "torneo-individual", torneo.id)
+        );
+
+        tarjeta.append(acciones);
+        listaTorneosIndividuales.append(tarjeta);
+    }
+}
+
+function editarTorneoIndividual(id) {
+    const torneo = datos.torneosIndividuales.find(t => t.id === id);
+
+    if (!torneo || !formularioTorneoIndividual) return;
+
+    actualizarSelectoresJugadoresIndividuales();
+
+    rellenarFormulario(formularioTorneoIndividual, {
+        ...torneo,
+        jugadorId: torneo.jugadorId || "",
+        temporada: torneo.temporada ?? ""
+    });
+
+    actualizarCampoTemporadaIndividual();
+
+    document.getElementById(
+        "cancelar-torneo-individual"
+    )?.classList.remove("hidden");
+
+    const boton = formularioTorneoIndividual.querySelector(
+        'button[type="submit"]'
+    );
+
+    if (boton) boton.textContent = "ACTUALIZAR TORNEO INDIVIDUAL";
+
+    formularioTorneoIndividual.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
+
+function cancelarEdicionTorneoIndividual() {
+    formularioTorneoIndividual?.reset();
+
+    if (formularioTorneoIndividual) {
+        formularioTorneoIndividual.elements.namedItem("id").value = "";
+    }
+
+    document.getElementById(
+        "cancelar-torneo-individual"
+    )?.classList.add("hidden");
+
+    const boton = formularioTorneoIndividual?.querySelector(
+        'button[type="submit"]'
+    );
+
+    if (boton) boton.textContent = "GUARDAR TORNEO INDIVIDUAL";
+
+    actualizarCampoTemporadaIndividual();
+    actualizarSelectoresJugadoresIndividuales();
+}
+
+async function guardarTorneoIndividual(evento) {
+    evento.preventDefault();
+
+    if (!esAdministrador()) {
+        mostrarEstado("No tienes permisos para guardar torneos.");
+        return;
+    }
+
+    if (guardando) {
+        mostrarEstado("Espera a que termine el guardado actual.");
+        return;
+    }
+
+    const idExistente = valor(formularioTorneoIndividual, "id");
+    const id = idExistente || crearId();
+
+    let registro;
+
+    try {
+        registro = construirTorneoIndividual(
+            formularioTorneoIndividual,
+            id
+        );
+    } catch (error) {
+        mostrarEstado(error.message);
+        return;
+    }
+
+    if (!registro.rango) {
+        mostrarEstado("Selecciona el rango conseguido.");
+        return;
+    }
+
+    const copiaAnterior = datos.torneosIndividuales.map(
+        item => ({ ...item })
+    );
+
+    const indice = datos.torneosIndividuales.findIndex(
+        item => item.id === id
+    );
+
+    if (indice >= 0) {
+        datos.torneosIndividuales[indice] = registro;
+    } else {
+        datos.torneosIndividuales.push(registro);
+    }
+
+    const boton = formularioTorneoIndividual.querySelector(
+        'button[type="submit"]'
+    );
+
+    if (boton) boton.disabled = true;
+
+    try {
+        await guardarColecciones();
+
+        cancelarEdicionTorneoIndividual();
+        renderTorneosIndividualesAdmin();
+
+        mostrarEstado("Torneo individual guardado correctamente.");
+    } catch (error) {
+        console.error("Error al guardar torneo individual:", error);
+
+        datos.torneosIndividuales = copiaAnterior;
+
+        mostrarEstado(
+            "No se pudo guardar el torneo individual. Comprueba la conexión."
+        );
+
+        renderTorneosIndividualesAdmin();
+    } finally {
+        if (boton) boton.disabled = false;
+    }
+}
+
+async function eliminarTorneoIndividual(id) {
+    if (!esAdministrador() || guardando) return;
+
+    const torneo = datos.torneosIndividuales.find(t => t.id === id);
+
+    if (!torneo) return;
+
+    if (!window.confirm(
+        "¿Seguro que quieres eliminar este torneo individual? Esta acción no se puede deshacer."
+    )) return;
+
+    const copiaAnterior = datos.torneosIndividuales.map(
+        item => ({ ...item })
+    );
+
+    datos.torneosIndividuales = datos.torneosIndividuales.filter(
+        t => t.id !== id
+    );
+
+    try {
+        await guardarColecciones();
+
+        if (
+            formularioTorneoIndividual.elements.namedItem("id").value === id
+        ) {
+            cancelarEdicionTorneoIndividual();
+        }
+
+        renderTorneosIndividualesAdmin();
+
+        mostrarEstado("Torneo individual eliminado.");
+    } catch (error) {
+        console.error("Error al eliminar torneo individual:", error);
+
+        datos.torneosIndividuales = copiaAnterior;
+
+        mostrarEstado("No se pudo eliminar el torneo individual.");
+
+        renderTorneosIndividualesAdmin();
+    }
+}
 
 /* CONSTRUIR REGISTROS */
 
@@ -670,8 +1038,7 @@ function construirTorneo(formulario, id) {
     };
 
     const serie = calcularSerie(torneo);
-
-    torneo.victoriasG12 = serie.victoriasG12;
+        torneo.victoriasG12 = serie.victoriasG12;
     torneo.victoriasRival = serie.victoriasRival;
     torneo.resultadoSerie = serie.resultado;
 
@@ -949,17 +1316,16 @@ if (formularioLigaEquipo) {
         const nombre = valor(formularioLigaEquipo, "nombre");
 
         if (!nombre) {
-            mostrarEstado("Escribe el nombre del equipo.");
+            mostrarEstado("Introduce el nombre del equipo.");
             return;
         }
 
         const duplicado = datos.ligaEquipos.some(equipo =>
-            equipo.nombre.toLocaleLowerCase("es") ===
-            nombre.toLocaleLowerCase("es")
+            equipo.nombre.toLocaleLowerCase("es") === nombre.toLocaleLowerCase("es")
         );
 
         if (duplicado) {
-            mostrarEstado("Ese equipo ya está registrado en la liga.");
+            mostrarEstado("Ese equipo ya está registrado.");
             return;
         }
 
@@ -970,9 +1336,7 @@ if (formularioLigaEquipo) {
             nombre
         });
 
-        const boton = formularioLigaEquipo.querySelector(
-            'button[type="submit"]'
-        );
+        const boton = formularioLigaEquipo.querySelector('button[type="submit"]');
 
         if (boton) boton.disabled = true;
 
@@ -980,14 +1344,11 @@ if (formularioLigaEquipo) {
             await guardarColecciones();
             formularioLigaEquipo.reset();
             renderLigaAdmin();
+            mostrarEstado("Equipo añadido correctamente.");
         } catch (error) {
             console.error("Error al guardar equipo:", error);
             datos.ligaEquipos = copiaAnterior;
-
-            mostrarEstado(
-                "No se pudo guardar el equipo. Comprueba la conexión."
-            );
-
+            mostrarEstado("No se pudo guardar el equipo.");
             renderLigaAdmin();
         } finally {
             if (boton) boton.disabled = false;
@@ -995,7 +1356,7 @@ if (formularioLigaEquipo) {
     });
 }
 
-/* LIGA: GUARDAR RESULTADO */
+/* LIGA: AÑADIR RESULTADO */
 
 if (formularioLigaPartido) {
     formularioLigaPartido.addEventListener("submit", async evento => {
@@ -1181,6 +1542,17 @@ async function eliminarElementoLiga(tipo, id) {
 
 /* CONECTAR FORMULARIOS */
 
+if (formularioTorneoIndividual) {
+    formularioTorneoIndividual.addEventListener("submit", guardarTorneoIndividual);
+}
+
+selectorTipoIndividual?.addEventListener("change", actualizarCampoTemporadaIndividual);
+
+document.getElementById("cancelar-torneo-individual")?.addEventListener("click", () => {
+    cancelarEdicionTorneoIndividual();
+    mostrarEstado("Edición de torneo individual cancelada.");
+});
+
 for (const [tipo, formulario] of Object.entries(formularios)) {
     if (!formulario) continue;
 
@@ -1211,6 +1583,16 @@ contenidoAdmin?.addEventListener("click", async evento => {
             editarRegistro(tipo, id);
         } else if (accion === "eliminar") {
             await eliminarRegistro(tipo, id);
+        }
+
+        return;
+    }
+
+    if (tipo === "torneo-individual") {
+        if (accion === "editar") {
+            editarTorneoIndividual(id);
+        } else if (accion === "eliminar") {
+            await eliminarTorneoIndividual(id);
         }
 
         return;
@@ -1339,3 +1721,5 @@ auth.onAuthStateChanged(async usuario => {
 });
 
 actualizarMarcadorSerie();
+actualizarSelectoresJugadoresIndividuales();
+actualizarCampoTemporadaIndividual();

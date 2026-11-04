@@ -27,7 +27,8 @@ let datos = {
     torneosIndividuales: [],
     records: [],
     ligaEquipos: [],
-    ligaPartidos: []
+    ligaPartidos: [],
+    ligas: []
 };
 
 let detenerSincronizacion = null;
@@ -96,10 +97,17 @@ function mensajeVacio(texto) {
 /* CONTADORES GENERALES */
 
 function actualizarContadores() {
+    const jornadasLiga = new Set(
+        datos.ligaPartidos
+            .map(partido => String(partido.jornada ?? "").trim())
+            .filter(jornada => jornada !== "")
+    );
+
     const contadores = {
         "total-jugadores": datos.jugadores.length,
         "total-torneos": datos.torneos.length,
-        "total-trofeos": datos.trofeos.length
+        "total-trofeos": datos.trofeos.length,
+        "total-ligas": jornadasLiga.size
     };
 
     for (const [id, cantidad] of Object.entries(contadores)) {
@@ -155,36 +163,71 @@ function renderJugadores() {
 
 /* ESTADÍSTICAS INDIVIDUALES */
 
-function tarjetaEstadisticasIndividuales(jugador, indice, tipoOrden) {
+function tarjetaEstadisticasIndividuales(jugador) {
     const estadisticas = [
-        { clave: "goles", etiqueta: "GOLES", icono: "⚽" },
-        { clave: "asistencias", etiqueta: "ASISTENCIAS", icono: "🎯" },
-        { clave: "salvadas", etiqueta: "SALVADAS", icono: "🛡️" }
+        {
+            clave: "goles",
+            etiqueta: "GOLES",
+            icono: "⚽",
+            clase: "stat-goals"
+        },
+        {
+            clave: "asistencias",
+            etiqueta: "ASISTENCIAS",
+            icono: "🎯",
+            clase: "stat-assists"
+        },
+        {
+            clave: "salvadas",
+            etiqueta: "SALVADAS",
+            icono: "🛡️",
+            clase: "stat-saves"
+        }
     ];
 
     return `
         <article class="data-card individual-stats-card">
-            <div class="individual-stats-card-top">
-                <span class="individual-rank">#${indice + 1}</span>
-                <span class="pill">G12 PLAYER</span>
+            <div class="individual-stats-header">
+                <div class="individual-stats-player-icon">G12</div>
+
+                <div class="individual-stats-player-info">
+                    <h3>${mostrarTexto(jugador.nombre, "Jugador sin nombre")}</h3>
+                    <p>${mostrarTexto(jugador.posicion, "Miembro de G12 Gaming")}</p>
+                </div>
             </div>
 
-            <h3>${mostrarTexto(jugador.nombre, "Jugador sin nombre")}</h3>
-            <p class="individual-player-role">
-                ${mostrarTexto(jugador.posicion, "Miembro de G12 Gaming")}
-            </p>
+            <div class="individual-stats-divider"></div>
 
             <div class="individual-stats-grid">
                 ${estadisticas.map(estadistica => `
-                    <div class="individual-stat ${tipoOrden === estadistica.clave ? "individual-stat-highlight" : ""}">
-                        <span class="individual-stat-icon">${estadistica.icono}</span>
-                        <span class="individual-stat-label">${estadistica.etiqueta}</span>
-                        <strong>${normalizarEstadistica(jugador[estadistica.clave])}</strong>
+                    <div class="individual-stat ${estadistica.clase}">
+                        <span class="individual-stat-icon">
+                            ${estadistica.icono}
+                        </span>
+
+                        <span class="individual-stat-label">
+                            ${estadistica.etiqueta}
+                        </span>
+
+                        <strong>
+                            ${normalizarEstadistica(jugador[estadistica.clave])}
+                        </strong>
                     </div>
                 `).join("")}
             </div>
         </article>
     `;
+}
+
+function renderEstadisticasIndividuales() {
+    const contenedor = document.getElementById("lista-estadisticas-individuales");
+    if (!contenedor) return;
+
+    contenedor.innerHTML = datos.jugadores.length
+        ? datos.jugadores.map(jugador =>
+            tarjetaEstadisticasIndividuales(jugador)
+        ).join("")
+        : mensajeVacio("Todavía no hay jugadores registrados.");
 }
 
 function renderEstadisticasIndividuales() {
@@ -248,6 +291,7 @@ function renderTorneos() {
         : mensajeVacio("Todavía no hay torneos registrados.");
 }
 
+
 /* TORNEOS INDIVIDUALES */
 
 function normalizarNombreJugador(nombre) {
@@ -255,66 +299,88 @@ function normalizarNombreJugador(nombre) {
 }
 
 function obtenerNombreJugador(torneo) {
-    return String(
-        torneo.jugadorNombre ?? torneo.jugador ?? torneo.nombreJugador ?? ""
-    ).trim();
+    const nombreDirecto =
+        torneo.jugadorNombre ??
+        (typeof torneo.jugador === "string" ? torneo.jugador : "") ??
+        torneo.nombreJugador ??
+        "";
+
+    if (String(nombreDirecto).trim()) {
+        return String(nombreDirecto).trim();
+    }
+
+    const jugadorId = torneo.jugadorId ??
+        (typeof torneo.jugador === "object" ? torneo.jugador?.id : null);
+
+    if (jugadorId !== undefined && jugadorId !== null) {
+        const jugador = datos.jugadores.find(j =>
+            String(j.id) === String(jugadorId)
+        );
+
+        if (jugador?.nombre) return String(jugador.nombre).trim();
+    }
+
+    return "";
 }
 
 function obtenerTemporada(torneo) {
-    if (torneo.temporada !== undefined &&
-        torneo.temporada !== null &&
-        String(torneo.temporada).trim() !== "") {
-        return String(torneo.temporada).trim();
-    }
+    const temporada = torneo.temporada;
 
-    if (torneo.fecha) {
-        const coincidencia = String(torneo.fecha).match(/^(\d{4})/);
-        if (coincidencia) return coincidencia[1];
+    if (temporada !== undefined &&
+        temporada !== null &&
+        String(temporada).trim() !== "") {
+        return String(temporada).trim();
     }
 
     return "Sin temporada";
 }
 
 function obtenerTituloTorneoIndividual(torneo) {
-    if (torneo.tipoTorneo === "pentatlon") {
-        return torneo.temporada
-            ? `Pentatlón — Temporada ${torneo.temporada}`
-            : "Pentatlón";
+    const tipo = String(torneo.tipoTorneo ?? torneo.tipo ?? "").toLowerCase();
+    const temporada = String(torneo.temporada ?? "").trim();
+    const nombre = String(torneo.nombre ?? "").trim();
+
+    if (tipo === "temporada") {
+        return temporada
+            ? `Torneo de temporada ${temporada}`
+            : nombre || "Torneo de temporada";
     }
 
-    if (torneo.tipoTorneo === "temporada") {
-        return `Torneo de temporada ${torneo.temporada || ""}`.trim();
+    if (tipo === "pentatlon" || tipo === "pentatlón") {
+        return temporada
+            ? `Pentatlón — Temporada ${temporada}`
+            : nombre || "Pentatlón";
     }
 
-    if (torneo.tipoTorneo === "fin-semana") {
-        return "Torneo de fin de semana";
+    if (tipo === "fin-semana") {
+        return nombre || "Torneo de fin de semana";
     }
 
-    return torneo.nombre && String(torneo.nombre).trim()
-        ? String(torneo.nombre).trim()
-        : "Torneo individual";
+    return nombre || "Torneo individual";
 }
 
 function tarjetaIndividual(torneo) {
     const titulo = obtenerTituloTorneoIndividual(torneo);
-    const puesto = torneo.puesto ?? torneo.posicion ?? "";
-    const rango = torneo.rango ?? "";
+    const rango = String(
+        torneo.rango ?? torneo.puesto ?? torneo.posicion ?? ""
+    ).trim();
 
-    const resultado = puesto !== ""
-        ? `Puesto: ${puesto}`
-        : rango !== ""
-            ? `Rango conseguido: ${rango}`
-            : "Resultado no registrado";
+    const resultado = rango
+        ? `Rango conseguido: ${rango}`
+        : "Rango no registrado";
 
     return `
         <article class="individual-tournament">
-            <div class="individual-tournament-icon">★</div>
+            <div class="individual-tournament-icon" aria-hidden="true">★</div>
+
             <div class="individual-tournament-info">
                 <h4>${escapar(titulo)}</h4>
-                <p class="individual-tournament-result">${escapar(resultado)}</p>
-                ${rango !== "" && puesto !== "" ? `<p>Rango: ${escapar(rango)}</p>` : ""}
-                ${torneo.fecha ? `<p>Fecha: ${formatearFecha(torneo.fecha)}</p>` : ""}
-                ${torneo.descripcion ? `<p>${mostrarTexto(torneo.descripcion)}</p>` : ""}
+                <p class="individual-tournament-result">
+                    ${escapar(resultado)}
+                </p>
+                ${torneo.descripcion
+                    ? `<p class="individual-tournament-description">${mostrarTexto(torneo.descripcion)}</p>`
+                    : ""}
             </div>
         </article>
     `;
@@ -331,7 +397,13 @@ function renderTorneosIndividuales() {
         if (!nombre) continue;
 
         const clave = normalizarNombreJugador(nombre);
-        if (!jugadores.has(clave)) jugadores.set(clave, { nombre, torneos: [] });
+
+        if (!jugadores.has(clave)) {
+            jugadores.set(clave, {
+                nombre,
+                torneos: []
+            });
+        }
     }
 
     for (const torneo of datos.torneosIndividuales) {
@@ -339,7 +411,13 @@ function renderTorneosIndividuales() {
         if (!nombre) continue;
 
         const clave = normalizarNombreJugador(nombre);
-        if (!jugadores.has(clave)) jugadores.set(clave, { nombre, torneos: [] });
+
+        if (!jugadores.has(clave)) {
+            jugadores.set(clave, {
+                nombre,
+                torneos: []
+            });
+        }
 
         jugadores.get(clave).torneos.push(torneo);
     }
@@ -360,59 +438,84 @@ function renderTorneosIndividuales() {
 
         for (const torneo of jugador.torneos) {
             const temporada = obtenerTemporada(torneo);
-            if (!grupos.has(temporada)) grupos.set(temporada, []);
+
+            if (!grupos.has(temporada)) {
+                grupos.set(temporada, []);
+            }
+
             grupos.get(temporada).push(torneo);
         }
 
         const temporadasOrdenadas = [...grupos.entries()].sort((a, b) => {
             if (a[0] === "Sin temporada") return 1;
             if (b[0] === "Sin temporada") return -1;
-            return b[0].localeCompare(a[0], "es", { numeric: true });
+
+            return b[0].localeCompare(a[0], "es", {
+                numeric: true
+            });
         });
 
-        const contenidoTemporadas = temporadasOrdenadas.map(([temporada, torneos]) => {
-            const torneosOrdenados = [...torneos].sort((a, b) =>
-                String(b.fecha || "").localeCompare(String(a.fecha || ""))
-            );
+        const contenidoTemporadas = temporadasOrdenadas.map(
+            ([temporada, torneos]) => {
+                const torneosOrdenados = [...torneos].sort((a, b) =>
+                    String(b.fecha ?? "").localeCompare(
+                        String(a.fecha ?? "")
+                    )
+                );
 
-            return `
-                <section class="individual-season">
-                    <h4 class="individual-season-title">
-                        <span class="individual-season-icon">◆</span>
-                        ${escapar(temporada === "Sin temporada" ? temporada : `Temporada ${temporada}`)}
-                        <span class="individual-season-count">
-                            ${torneos.length} ${torneos.length === 1 ? "torneo" : "torneos"}
-                        </span>
-                    </h4>
-                    <div class="individual-tournaments-list">
-                        ${torneosOrdenados.map(tarjetaIndividual).join("")}
-                    </div>
-                </section>
-            `;
-        }).join("");
+                return `
+                    <section class="individual-season">
+                        <h4 class="individual-season-title">
+                            <span class="individual-season-icon">◆</span>
+                            ${escapar(
+                                temporada === "Sin temporada"
+                                    ? temporada
+                                    : `Temporada ${temporada}`
+                            )}
+                            <span class="individual-season-count">
+                                ${torneos.length}
+                                ${torneos.length === 1 ? "torneo" : "torneos"}
+                            </span>
+                        </h4>
+
+                        <div class="individual-tournaments-list">
+                            ${torneosOrdenados.map(tarjetaIndividual).join("")}
+                        </div>
+                    </section>
+                `;
+            }
+        ).join("");
 
         return `
             <details class="individual-player" id="jugador-individual-${indice}">
                 <summary class="individual-player-summary">
                     <span class="individual-player-icon">G12</span>
+
                     <span class="individual-player-name">
                         <strong>${escapar(jugador.nombre)}</strong>
                         <span class="individual-player-subtitle">
                             ${jugador.torneos.length}
-                            ${jugador.torneos.length === 1 ? "torneo individual" : "torneos individuales"}
+                            ${jugador.torneos.length === 1
+                                ? "torneo individual"
+                                : "torneos individuales"}
                         </span>
                     </span>
+
                     <span class="individual-player-arrow" aria-hidden="true">⌄</span>
                 </summary>
+
                 <div class="individual-player-content">
                     ${jugador.torneos.length
                         ? contenidoTemporadas
-                        : `<div class="individual-empty">Este jugador todavía no tiene torneos individuales registrados.</div>`}
+                        : `<div class="individual-empty">
+                            Este jugador todavía no tiene torneos individuales registrados.
+                           </div>`}
                 </div>
             </details>
         `;
     }).join("");
 }
+
 
 /* LIGA */
 

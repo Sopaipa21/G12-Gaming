@@ -31,6 +31,7 @@
                 </div>
             </div>
 
+            <!-- ACCESO -->
             <div class="admin-card" id="acceso-admin">
                 <h3>Acceso de administrador</h3>
                 <p class="muted">Inicia sesión para gestionar G12 Gaming.</p>
@@ -92,7 +93,73 @@
                     <button class="button button-secondary hidden" id="cancelar-jugador" type="button">CANCELAR EDICIÓN</button>
                 </form>
 
-                <!-- TORNEOS -->
+                <!-- TORNEOS INDIVIDUALES -->
+                <form id="form-torneo-individual" class="admin-card">
+                    <h3>Torneos individuales</h3>
+                    <p class="muted">Registra los logros individuales de los jugadores de G12 Gaming.</p>
+
+                    <input type="hidden" name="id">
+
+                    <label for="torneo-individual-jugador">Jugador</label>
+                    <select id="torneo-individual-jugador" name="jugadorId" required>
+                        <option value="">Selecciona un jugador</option>
+                    </select>
+
+                    <label for="torneo-individual-tipo">Tipo de torneo</label>
+                    <select id="torneo-individual-tipo" name="tipoTorneo" required>
+                        <option value="">Selecciona el tipo</option>
+                        <option value="temporada">Torneo de temporada</option>
+                        <option value="fin-semana">Torneo de fin de semana</option>
+                        <option value="pentatlon">Pentatlón</option>
+                        <option value="otro">Otro</option>
+                    </select>
+
+                    <div id="torneo-individual-temporada-contenedor" class="hidden">
+                        <label for="torneo-individual-temporada">Temporada</label>
+                        <input
+                            id="torneo-individual-temporada"
+                            name="temporada"
+                            type="number"
+                            min="1"
+                            step="1"
+                            placeholder="Ej. 24"
+                        >
+                    </div>
+
+                  <label for="torneo-individual-rango">Rango conseguido</label>
+<select id="torneo-individual-rango" name="rango" required>
+    <option value="">Selecciona un rango</option>
+    <option value="Bronce">Bronce</option>
+    <option value="Plata">Plata</option>
+    <option value="Oro">Oro</option>
+    <option value="Platino">Platino</option>
+    <option value="Diamante">Diamante</option>
+    <option value="Champion">Champion</option>
+    <option value="Gran Campeón">Gran Campeón</option>
+    <option value="Supersonic Legend">Supersonic Legend</option>
+</select>
+
+                    <label for="torneo-individual-descripcion">Descripción</label>
+                    <textarea
+                        id="torneo-individual-descripcion"
+                        name="descripcion"
+                        rows="4"
+                        maxlength="500"
+                        placeholder="Describe el torneo, el logro conseguido o cualquier detalle adicional..."
+                    ></textarea>
+
+                    <button class="button" type="submit">GUARDAR TORNEO INDIVIDUAL</button>
+                    <button class="button button-secondary hidden" id="cancelar-torneo-individual" type="button">
+                        CANCELAR EDICIÓN
+                    </button>
+
+                    <h4>Torneos individuales registrados</h4>
+                    <div id="torneos-individuales-admin" class="admin-record-list">
+                        <p class="muted">Los torneos registrados aparecerán aquí.</p>
+                    </div>
+                </form>
+
+                <!-- TORNEOS DEL CLUB -->
                 <form id="form-torneo" class="admin-card">
                     <h3>Torneo y gran final</h3>
                     <input type="hidden" name="id">
@@ -126,19 +193,13 @@
                         <option value="Participante">Participante</option>
                         <option value="Campeón">Campeón</option>
                         <option value="Subcampeón">Subcampeón</option>
-                        <option value="Semifinalista">Semifinalista</option>
-                        <option value="Cuartos de final">Cuartos de final</option>
-                        <option value="Octavos de final">Octavos de final</option>
-                        <option value="Otra posición">Otra posición</option>
+                        <option value="Tercer puesto">Tercer puesto</option>
+                        <option value="Top 4">Top 4</option>
+                        <option value="Top 8">Top 8</option>
                     </select>
 
-                    <div class="final-partidas">
-                        <p class="eyebrow">GRAND FINAL · BO3</p>
-                        <h4>Marcadores de la final</h4>
-                        <p class="muted small">Si un equipo gana las dos primeras partidas, deja la tercera vacía.</p>
-
-                        <label for="torneo-rival">Equipo rival</label>
-                        <input id="torneo-rival" name="rival" maxlength="80" placeholder="Ej. Team Falcons">
+                    <div class="final-admin">
+                        <h4>Gran final</h4>
 
                         <label for="torneo-jugadores-g12">Jugadores de G12 en la final</label>
                         <input id="torneo-jugadores-g12" name="jugadoresG12" maxlength="150" placeholder="Ej. Kxzers, compañero">
@@ -205,7 +266,7 @@
                     <button class="button button-secondary hidden" id="cancelar-torneo" type="button">CANCELAR EDICIÓN</button>
                 </form>
 
-                <!-- TROFEOS -->
+                <!-- TROFEOS Y PALMARÉS -->
                 <form id="form-trofeo" class="admin-card">
                     <h3>Trofeo o logro</h3>
                     <input type="hidden" name="id">
@@ -237,7 +298,7 @@
                     <button class="button button-secondary hidden" id="cancelar-trofeo" type="button">CANCELAR EDICIÓN</button>
                 </form>
 
-                <!-- LIGA: REGISTRAR EQUIPOS -->
+                <!-- LIGA: EQUIPOS -->
                 <section class="admin-card" id="admin-liga-equipos">
                     <h3>Equipos de la liga</h3>
                     <p class="muted">Registra los equipos que participan en la competición.</p>
@@ -245,7 +306,6 @@
                     <form id="form-liga-equipo">
                         <label for="liga-equipo-nombre">Nombre del equipo</label>
                         <input id="liga-equipo-nombre" name="nombre" required maxlength="80" placeholder="Ej. G12 Gaming">
-
                         <button class="button" type="submit">AÑADIR EQUIPO</button>
                     </form>
 
@@ -254,7 +314,7 @@
                     </div>
                 </section>
 
-                <!-- LIGA: REGISTRAR RESULTADOS -->
+                <!-- LIGA: RESULTADOS -->
                 <section class="admin-card" id="admin-liga-resultados">
                     <h3>Registrar resultado de liga</h3>
                     <p class="muted">Introduce la jornada, los equipos y el marcador final.</p>
@@ -281,9 +341,7 @@
                                 <label for="liga-goles-a">Goles equipo local</label>
                                 <input id="liga-goles-a" name="golesA" type="number" min="0" max="99" step="1" required placeholder="0">
                             </div>
-
                             <span class="score-dash">–</span>
-
                             <div>
                                 <label for="liga-goles-b">Goles equipo visitante</label>
                                 <input id="liga-goles-b" name="golesB" type="number" min="0" max="99" step="1" required placeholder="0">
